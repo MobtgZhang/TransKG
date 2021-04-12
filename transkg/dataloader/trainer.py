@@ -79,9 +79,19 @@ class Trainer:
         elif self.model_name == "TransA":
             self.model = None
         elif self.model_name == "TransH":
-            self.model = None
+            self.model = TransH(ent_tot=len(self.entityDict["stoi"]),
+                                rel_tot=len(self.relationDict["stoi"]),
+                                emb_dim=self.model_dict["TransH"]["EmbeddingDim"],
+                                margin=self.model_dict["TransH"]["Margin"],
+                                L=self.model_dict["TransH"]["L"],
+                                C=self.model_dict["TransH"]["C"])
         elif self.model_name == "TransD":
-            self.model = None
+            self.model = TransD(ent_tot=len(self.entityDict["stoi"]),
+                                rel_tot=len(self.relationDict["stoi"]),
+                                ent_dim=self.model_dict["TransD"]["EntityDim"],
+                                rel_dim=self.model_dict["TransD"]["RelationDim"],
+                                margin=self.model_dict["TransD"]["Margin"],
+                                L=self.model_dict["TransH"]["L"])
         elif self.model_name == "TransR":
             self.model = None
         elif self.model_name == "KG2E":
@@ -97,15 +107,15 @@ class Trainer:
                                      relationEmbedFile=self.relation_file,
                                      relationDict=self.relationDict["stoi"])
         elif self.model_name == "TransA":
-            self.model = None
+            pass
         elif self.model_name == "TransH":
-            self.model = None
+            pass
         elif self.model_name == "TransD":
-            self.model = None
+            pass
         elif self.model_name == "TransR":
-            self.model = None
+            pass
         elif self.model_name == "KG2E":
-            self.model = None
+            pass
         else:
             print("ERROR : No model named %s" % (self.model_name))
             exit(1)
@@ -194,14 +204,11 @@ class Trainer:
         '''
         # save the embedding
         output = self.model.retEvalWeights()
-        entityEmbedding = output['entityEmbedding']
-        relationEmbedding = output['relationEmbedding']
         root = os.path.join(self.checkpoints_dir,self.model_name)
         if not os.path.exists(root):
             print("INFO : making dirs %s"%root)
             os.makedirs(root)
-        np.savez(os.path.join(root,"ent_embedding.npz"),entityEmbedding)
-        np.savez(os.path.join(root,"relationEmbedding.npz"),relationEmbedding)
+        np.savez(os.path.join(root,"embeddings.npz"),output)
         # save model
         self.model.save_checkpoint(os.path.join(root, self.model_name + ".ckpt"))
         # save model parameters
@@ -225,4 +232,4 @@ class Trainer:
         self.lr_decay = lr_decay
     def set_weight_decay(self,weight_decay):
         self.weight_decay = weight_decay
-        
+

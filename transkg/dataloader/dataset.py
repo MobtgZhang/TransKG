@@ -32,7 +32,6 @@ class tripleDataset(Dataset):
         shuffleHead = self.negDf["head"].sample(frac=1.0, random_state=headSeed)
         shuffleTail = self.negDf["tail"].sample(frac=1.0, random_state=tailSeed)
 
-
         # The method to replace head or tail
         def replaceHead(relHead,shuffHead,shuffTail,repP,exP):
             if repP >= repProba:
@@ -54,6 +53,7 @@ class tripleDataset(Dataset):
                                       repProbaDistribution,exProbaDistribution))
         self.negDf["tail"] = list(map(replaceTail,self.negDf["tail"],shuffleHead,shuffleTail,
                                       repProbaDistribution,exProbaDistribution))
+
     @staticmethod
     def transformToIndex(csvData:pd.DataFrame, repDict:dict):
         for col in repDict.keys():

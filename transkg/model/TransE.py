@@ -7,7 +7,9 @@ from .Model import Model
 class TransE(Model):
     '''
     This is the TransE model implementation.
-    paper title:
+    paper title: Translating Embeddings for Modeling Multi-relational Data. Curran Associates Inc. 2013.
+    paper author: Bordes A , Usunier N , Garcia-Duran A , et al.
+    paper website: http://www.thespermwhale.com/jaseweston/papers/CR_paper_nips13.pdf
     '''
     def __init__(self,ent_tot,rel_tot,emb_dim,margin=1.0,L=2):
         super(TransE, self).__init__(ent_tot,rel_tot)
@@ -15,6 +17,7 @@ class TransE(Model):
         self.name = "TransE"
         self.margin = margin
         self.L = L
+        self.emb_dim =emb_dim
         self.entEmbedding = nn.Embedding(num_embeddings=ent_tot,
                                          embedding_dim=emb_dim)
         self.relEmbedding = nn.Embedding(num_embeddings=ent_tot,
@@ -120,14 +123,4 @@ class TransE(Model):
                 embed = np.array(embed.split(","),dtype=np.float32)
                 if rel in entityDict:
                     self.relEmbedding.weight.data[relationDict[rel]].copy_(torch.from_numpy(embed))
-
-
-
-
-
-
-
-
-
-
 
