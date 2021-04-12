@@ -7,10 +7,15 @@ Knowledge Graph Embedding model collections implemented by Pytorch.Including Tra
 + numpy>=1.20.1
 + tensorboardX>=2.2
 # Usage
-Use following command to train the embedding.
+Step1: download the FB15K-237 dataset,then extract the dataset file into the file `data`. 
+
+Step2: Use following command to train the embedding.
 ```bash
 python main.py
 ```
+Then the embedding file will save in dir:`./checkpoints`
+# Dataset
+The FB15K-237 dataset is here:[FB15K-237](https://everest.hds.utc.fr/lib/exe/fetch.php?media=en:fb15k.tgz).
 # References
 [1] [Bordes A ,  Usunier N ,  Garcia-Duran A , et al. Translating Embeddings for Modeling Multi-relational Data. Curran Associates Inc.  2013.](http://www.thespermwhale.com/jaseweston/papers/CR_paper_nips13.pdf)
 
