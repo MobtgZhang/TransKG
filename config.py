@@ -5,67 +5,77 @@ class Config():
     Data arguments:This class is used for training model dataset parameters.
     '''
     def __init__(self):
-        self.pospath = "./data/train.txt"
-        self.validpath = ".data/valid.txt"
-        self.testpath = ".data/valid.txt"
-        self.entpath = "./source/dict/entityDict.json"
-        self.relpath = "./source/dict/relationDict.json"
-        self.embedpath = "./source/embed/"
-        self.logpath = "./source/log/"
-        self.savetype = "pt"
+        self.train_dir = "./data/train.txt"
+        self.valid_dir = "./data/valid.txt"
+        self.test_dir = "./data/valid.txt"
+        self.ent_path = "./source/dict/entityDict.json"
+        self.rel_path = "./source/dict/relationDict.json"
+        self.embed_path = "./source/embed/"
+        self.checkpoints_dir = "./checkpoints"
 
-        # Dataloader arguments
+        # Data loader arguments
         self.batch_size = 1024
         self.shuffle = True
-        self.num_workers = 0
+        self.work_threads = 0
         self.drop_last = False
         self.repproba = 0.5
         self.exproba = 0.5
+        self.save_steps = 25
 
         # Model and training general arguments
-        self.TransE = {"EmbeddingDim": 100,
+        TransE = {"EmbeddingDim": 100,
                        "Margin": 1.0,
                        "L": 2}
-        self.TransH = {"EmbeddingDim": 100,
+        TransH = {"EmbeddingDim": 100,
                        "Margin": 1.0,
                        "L": 2,
                        "C": 0.01,
                        "Eps": 0.001}
-        self.TransD = {"EntityDim": 100,
+        TransD = {"EntityDim": 100,
                        "RelationDim": 100,
                        "Margin": 2.0,
                        "L": 2}
-        self.TransA = {"EmbeddingDim": 100,
+        TransA = {"EmbeddingDim": 100,
                        "Margin": 3.2,
                        "L": 2,
                        "Lamb": 0.01,
                        "C": 0.2}
-        self.KG2E = {"EmbeddingDim": 100,
+        TransR = {
+
+                                }
+        KG2E = {"EmbeddingDim": 100,
                      "Margin": 4.0,
                      "Sim": "EL",
                      "Vmin": 0.03,
                      "Vmax": 3.0}
+        self.model_dict = {"TransA":TransA,
+                           "TransD":TransD,
+                           "TransE":TransE,
+                           "TransH":TransH,
+                           "TransR":TransR,
+                           "KG2E":KG2E}
         self.use_gpu = torch.cuda.is_available()
         self.gpu_num = torch.cuda.device_count()
-        self.model_name = "KG2E"
-        self.weightdecay = 0
-        self.epochs = 5
+        self.model_name = "TransE"
+        self.alpha = 0
+        self.weight_decay = 0
+        self.train_times = 5
         self.evalepoch = 1
         self.learningrate = 0.01
-        self.lrdecay = 0.96
+        self.lr_decay = 0.96
         self.lrdecayepoch = 5
-        self.optimizer = "Adam"
+        self.opt_method = "Adam"
         self.evalmethod = "MR"
         self.simmeasure = "L2"
         self.modelsave = "param"
         self.modelpath = "./source/model/"
         self.load_embed = False
         self.load_model = False
-        self.entityfile = "./source/embed/entityEmbedding.txt"
-        self.relationfile = "./source/embed/relationEmbedding.txt"
-        self.premodel = "./source/model/TransE_ent128_rel128.param"
+        self.entity_file = "./source/embed/entityEmbedding.txt"
+        self.relation_file = "./source/embed/relationEmbedding.txt"
+        self.pre_model = None # "./source/model/TransE_ent128_rel128.param"
         # Other arguments
-        self.summarydir = "./source/summary/KG2E_EL/"
+        self.summary_dir = "./source/summary/KG2E_EL/"
         # check path
         self.checkPath()
         # The parameters in papper
@@ -94,10 +104,11 @@ class Config():
 
     def checkPath(self):
         # Check files
-        checkPath(self.pospath)
-        checkPath(self.validpath)
+        checkPath(self.train_dir)
+        checkPath(self.valid_dir)
+        checkPath(self.test_dir)
         # Check dirs
         checkPath(self.modelpath,raise_error=False)
-        checkPath(self.logpath,raise_error=False)
-        checkPath(self.summarydir,raise_error=False)
-        checkPath(self.embedpath,raise_error=False)
+        checkPath(self.checkpoints_dir,raise_error=False)
+        checkPath(self.summary_dir,raise_error=False)
+        checkPath(self.embed_path,raise_error=False)
