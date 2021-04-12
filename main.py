@@ -1,31 +1,19 @@
-import os
 from config import Config
 from transkg.process import generateDict,changeToStandard
 from transkg.utils import printArgs
-from tensorboardX import SummaryWriter
 from transkg.dataloader import Trainer,Tester
-def main():
-    # data preprocess
-    trainRaw = "./data/freebase_mtr100_mte100-train.txt"
-    validRaw = "./data/freebase_mtr100_mte100-valid.txt"
-    testRaw = "./data/freebase_mtr100_mte100-test.txt"
-    trainFile = "./data/train.txt"
-    validFile = "./data/valid.txt"
-    testFile = "./data/test.txt"
-    dictDir = "./source/dict/"
-    # change to standard dataset
-    changeToStandard(trainRaw,trainFile)
-    changeToStandard(validRaw,validFile)
-    changeToStandard(testRaw,testFile)
-    if not os.path.exists(dictDir):
-        os.makedirs(dictDir)
-    # generate dictionary
-    generateDict(dataPath=[trainFile, validFile, testFile],
-                 dictSaveDir=dictDir)
+from tensorboardX import SummaryWriter
 
-    # dataset preparing
+def main():
     args = Config()
     printArgs(args)
+    # change to standard dataset
+    changeToStandard(args.train_raw,args.train_dir)
+    changeToStandard(args.valid_raw,args.valid_dir)
+    changeToStandard(args.test_raw,args.test_dir)
+    # generate dictionary
+    generateDict(dataPath=[args.train_dir,args.valid_dir,args.test_dir],
+                 dictSaveDir=args.dict_dir)
     sumWriter = SummaryWriter(log_dir=args.summary_dir)
     trainModel = Trainer(args)
     trainModel.prepareData()
@@ -35,6 +23,7 @@ def main():
     if args.load_model:
         trainModel.loadPretrainModel()
     trainModel.run()
+    trainModel.save()
     # test model
     testModel = Tester()
     testModel.test()

@@ -1,3 +1,4 @@
+import os
 import torch
 from transkg.utils import checkPath
 class Config():
@@ -13,6 +14,12 @@ class Config():
         self.embed_path = "./source/embed/"
         self.checkpoints_dir = "./checkpoints"
 
+        self.train_raw = "./data/freebase_mtr100_mte100-train.txt"
+        self.valid_raw = "./data/freebase_mtr100_mte100-valid.txt"
+        self.test_raw = "./data/freebase_mtr100_mte100-test.txt"
+        self.dict_dir = "./source/dict/"
+
+
         # Data loader arguments
         self.batch_size = 1024
         self.shuffle = True
@@ -20,7 +27,6 @@ class Config():
         self.drop_last = False
         self.repproba = 0.5
         self.exproba = 0.5
-        self.save_steps = 25
 
         # Model and training general arguments
         TransE = {"EmbeddingDim": 100,
@@ -56,26 +62,28 @@ class Config():
                            "KG2E":KG2E}
         self.use_gpu = torch.cuda.is_available()
         self.gpu_num = torch.cuda.device_count()
-        self.model_name = "TransE"
+        self.model_name = "TransD"
         self.alpha = 0
         self.weight_decay = 0
-        self.train_times = 5
+        self.train_times = 1
+        self.save_steps = 2
         self.evalepoch = 1
         self.learningrate = 0.01
         self.lr_decay = 0.96
         self.lrdecayepoch = 5
-        self.opt_method = "Adam"
+        self.opt_method = "SGD"
         self.evalmethod = "MR"
         self.simmeasure = "L2"
         self.modelsave = "param"
         self.modelpath = "./source/model/"
         self.load_embed = False
         self.load_model = False
+        self.embed_file = "./source/embed/embedding.npz"
         self.entity_file = "./source/embed/entityEmbedding.txt"
         self.relation_file = "./source/embed/relationEmbedding.txt"
-        self.pre_model = None # "./source/model/TransE_ent128_rel128.param"
+        self.pre_model = None
         # Other arguments
-        self.summary_dir = "./source/summary/KG2E_EL/"
+        self.summary_dir = os.path.join(self.checkpoints_dir,self.model_name,"summary")
         # check path
         self.checkPath()
         # The parameters in papper
@@ -112,3 +120,4 @@ class Config():
         checkPath(self.checkpoints_dir,raise_error=False)
         checkPath(self.summary_dir,raise_error=False)
         checkPath(self.embed_path,raise_error=False)
+        checkPath(self.dict_dir,raise_error=False)
