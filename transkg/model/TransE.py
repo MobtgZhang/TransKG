@@ -7,6 +7,7 @@ from .Model import Model
 class TransE(Model):
     '''
     This is the TransE model implementation.
+    paper title:
     '''
     def __init__(self,ent_tot,rel_tot,emb_dim,margin=1.0,L=2):
         super(TransE, self).__init__(ent_tot,rel_tot)
@@ -18,6 +19,9 @@ class TransE(Model):
                                          embedding_dim=emb_dim)
         self.relEmbedding = nn.Embedding(num_embeddings=ent_tot,
                                          embedding_dim=emb_dim)
+        # initialize the embedding layer
+        nn.init.xavier_uniform_(self.entEmbedding.weight.data)
+        nn.init.xavier_uniform_(self.relEmbedding.weight.data)
         self.distfn = nn.PairwiseDistance(L)
     def scoreOp(self,inputTriple):
         '''
@@ -70,9 +74,9 @@ class TransE(Model):
         ==> Step3: Assign normalized array to embedding.
         :return:
         '''
-        embeddingWeight = self.entEmbedding.weight.detach().cpu().numpy()
-        embeddingWeight = embeddingWeight/np.sqrt(np.sum(np.squeeze(embeddingWeight),axis=1,keepdims=True))
-        self.entEmbedding.weight.data.copy_(torch.from_numpy(embeddingWeight))
+        weight = self.entEmbedding.weight.detach().cpu().numpy()
+        weight = weight / np.sqrt(np.sum(np.square(weight), axis=1, keepdims=True))
+        self.entEmbedding.weight.data.copy_(torch.from_numpy(weight))
     def retEvalWeights(self):
         return {"entityEmbedding":self.entEmbedding.weight.detach().cpu().numpy(),
                 "relationEmbedding":self.relEmbedding.weight.detach().cpu().numpy()}

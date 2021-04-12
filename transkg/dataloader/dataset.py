@@ -62,6 +62,6 @@ class tripleDataset(Dataset):
         return len(self.posDf)
     def __getitem__(self, item):
         if hasattr(self,"negDf"):
-            return np.array(self.posDf[item,:3]),np.array(self.negDf[item,:3])
+            return np.array(self.posDf.iloc[item,:3]),np.array(self.negDf.iloc[item,:3])
         else:
-            return np.array(self.posDf[item, :3])
+            return np.array(self.posDf.iloc[item, :3])

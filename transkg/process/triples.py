@@ -50,13 +50,4 @@ def generateDict(dataPath,dictSaveDir):
     # Save dicts
     json.dump({"stoi": entityDict, "itos": entityList}, open(entityDictPath, "w"))
     json.dump({"stoi": relaDict, 'itos': relaList}, open(relaDictPath, "w"))
-if __name__ == "__main__":
-    trainFile = "../data/freebase_mtr100_mte100-train.txt"
-    validFile = "../data/freebase_mtr100_mte100-valid.txt"
-    testFile = "../data/freebase_mtr100_mte100-test.txt"
-    saveDir = "../data/"
-    dictDir = "../source/dict/"
-    if not os.path.exists(dictDir):
-        os.makedirs(dictDir)
-    generateDict(dataPath=[trainFile,validFile,testFile],
-                 dictSaveDir=dictDir)
+

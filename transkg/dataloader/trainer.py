@@ -2,6 +2,7 @@ import os
 import json
 import torch
 from tqdm import tqdm
+import numpy as np
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
@@ -60,7 +61,7 @@ class Trainer:
         self.entity_file = args.entity_file
         self.relation_file = args.relation_file
     def prepareData(self):
-        print("INFO:Prepare dataloader.")
+        print("INFO : Prepare dataloader.")
         self.train_loader = prepareTrainDataloader(self.train_dir,self.ent_path,self.rel_path,
                           self.batch_size,self.shuffle,self.work_threads,self.drop_last)
         #self.valid_loader = prepareValidDataloader(self.valid_dir, self.ent_path, self.rel_path,
@@ -169,7 +170,7 @@ class Trainer:
                 res += loss
             training_range.set_description("Epoch %d | loss: %f"%(epoch,res))
             if self.save_steps and self.checkpoints_dir and (epoch+1)%self.save_steps == 0:
-                self.model.save_checkpoint(os.path.join(self.checkpoints_dir+self.model_name+"-"+str(epoch)+".ckpt"))
+                self.model.save_checkpoint(os.path.join(self.checkpoints_dir,self.model_name+"-"+str(epoch)+".ckpt"))
     def train_one_step(self,posX,negX):
         # normalize the embedding
         self.model.normalizeEmbedding()
@@ -183,6 +184,20 @@ class Trainer:
         loss.backward()
         self.optimizer.step()
         return lossval
+    def save(self):
+        '''The method saves the model embedding,model and model parameters
+        :return:
+        '''
+        # save the embedding
+        output = self.model.retEvalWeights()
+        entityEmbedding = output['entityEmbedding']
+        relationEmbedding = output['relationEmbedding']
+        np.savez(os.path.join(self.checkpoints_dir,"ent_embedding.npz"),entityEmbedding)
+        np.savez(os.path.join(self.checkpoints_dir,"relationEmbedding.npz"),relationEmbedding)
+        # save model
+        self.model.save_checkpoint(os.path.join(self.checkpoints_dir, self.model_name + ".ckpt"))
+        # save model parameters
+        self.model.save_parameters(os.path.join(self.checkpoints_dir, self.model_name + ".json"))
     def to_var(self,x,use_gpu):
         if use_gpu:
             return Variable(torch.LongTensor(x).cuda())
