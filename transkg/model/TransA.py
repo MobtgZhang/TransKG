@@ -1,0 +1,12 @@
+import torch
+import torch.nn.functional as F
+
+from .Model import Model
+
+class TransA(Model):
+    def __init__(self,ent_tot,rel_tot):
+        super(TransA, self).__init__(ent_tot,rel_tot)
+    def forward(self, *args, **kwargs):
+        pass
+    def predict(self, *args, **kwargs):
+        pass
