@@ -26,11 +26,13 @@ class tripleDataset(Dataset):
         print("INFO : Generate negtive samples from positive samples.")
         self.negDf = self.posDf.copy()
         np.random.seed(repSeed)
-        repProbaDistribution = np.random.uniform(low=0.0,high=1.0,size=(len(self.negDf),))
+        repProbaDistribution = np.random.uniform(low=0.0, high=1.0, size=(len(self.negDf),))
         np.random.seed(exSeed)
-        exProbaDistribution = np.random.uniform(low=0.0,high=1.0,size=(len(self.negDf),))
-        shuffleHead = self.negDf["head"].samlpe(frac=1.0,random_state=headSeed)
-        shuffleTail = self.negDf["tail"].samlpe(frac=1.0, random_state=tailSeed)
+        exProbaDistribution = np.random.uniform(low=0.0, high=1.0, size=(len(self.negDf),))
+        shuffleHead = self.negDf["head"].sample(frac=1.0, random_state=headSeed)
+        shuffleTail = self.negDf["tail"].sample(frac=1.0, random_state=tailSeed)
+
+
         # The method to replace head or tail
         def replaceHead(relHead,shuffHead,shuffTail,repP,exP):
             if repP >= repProba:
@@ -57,9 +59,9 @@ class tripleDataset(Dataset):
         for col in repDict.keys():
             csvData[col] = csvData[col].apply(lambda x:repDict[col][x])
     def __len__(self):
-        return len(self.posData)
+        return len(self.posDf)
     def __getitem__(self, item):
-        if hasattr(self,"negData"):
-            return np.array(self.posData[item,:3]),np.array(self.negData[item,:3])
+        if hasattr(self,"negDf"):
+            return np.array(self.posDf[item,:3]),np.array(self.negDf[item,:3])
         else:
-            return np.array(self.posData[item, :3])
+            return np.array(self.posDf[item, :3])
