@@ -163,6 +163,10 @@ class Trainer:
             )
         print("Finish initializing...")
         training_range = tqdm(range(self.train_times))
+        root = os.path.join(self.checkpoints_dir, self.model_name)
+        if not os.path.exists(root):
+            print("INFO : making dirs %s" % root)
+            os.makedirs(root)
         for epoch in training_range:
             res = 0.0
             for posX,negX in self.train_loader:
@@ -170,7 +174,7 @@ class Trainer:
                 res += loss
             training_range.set_description("Epoch %d | loss: %f"%(epoch,res))
             if self.save_steps and self.checkpoints_dir and (epoch+1)%self.save_steps == 0:
-                self.model.save_checkpoint(os.path.join(self.checkpoints_dir,self.model_name+"-"+str(epoch)+".ckpt"))
+                self.model.save_checkpoint(os.path.join(root,self.model_name+"-"+str(epoch)+".ckpt"))
     def train_one_step(self,posX,negX):
         # normalize the embedding
         self.model.normalizeEmbedding()
@@ -192,12 +196,16 @@ class Trainer:
         output = self.model.retEvalWeights()
         entityEmbedding = output['entityEmbedding']
         relationEmbedding = output['relationEmbedding']
-        np.savez(os.path.join(self.checkpoints_dir,"ent_embedding.npz"),entityEmbedding)
-        np.savez(os.path.join(self.checkpoints_dir,"relationEmbedding.npz"),relationEmbedding)
+        root = os.path.join(self.checkpoints_dir,self.model_name)
+        if not os.path.exists(root):
+            print("INFO : making dirs %s"%root)
+            os.makedirs(root)
+        np.savez(os.path.join(root,"ent_embedding.npz"),entityEmbedding)
+        np.savez(os.path.join(root,"relationEmbedding.npz"),relationEmbedding)
         # save model
-        self.model.save_checkpoint(os.path.join(self.checkpoints_dir, self.model_name + ".ckpt"))
+        self.model.save_checkpoint(os.path.join(root, self.model_name + ".ckpt"))
         # save model parameters
-        self.model.save_parameters(os.path.join(self.checkpoints_dir, self.model_name + ".json"))
+        self.model.save_parameters(os.path.join(root, self.model_name + ".json"))
     def to_var(self,x,use_gpu):
         if use_gpu:
             return Variable(torch.LongTensor(x).cuda())
@@ -217,3 +225,4 @@ class Trainer:
         self.lr_decay = lr_decay
     def set_weight_decay(self,weight_decay):
         self.weight_decay = weight_decay
+        
