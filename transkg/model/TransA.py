@@ -116,6 +116,5 @@ class TransA(Model):
         return {"entEmbedding":self.entEmbedding.weight.detach().cpu().numpy(),
                 "relEmbedding":self.relEmbedding.weight.detach().cpu().numpy(),
                 "relWeight":self.relWeights.detach().cpu().numpy()}
-
-    def predict(self, *args, **kwargs):
-        pass
+    def predict(self, inputTriples):
+        return self.scoreOp(inputTriples)

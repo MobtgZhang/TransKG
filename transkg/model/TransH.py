@@ -72,8 +72,9 @@ class TransH(Model):
         orthLoss = torch.sum(F.relu(torch.sum(self.relationHyper.weight * self.relEmbedding.weight,dim=1,keepdim=False)/\
             torch.norm(self.relEmbedding.weight,p=2,dim=1,keepdim=False)-self.eps**2))
         return marginLoss/size + self.C*(entityLoss/self.ent_tot+orthLoss/self.rel_tot)
-    def predict(self, *args, **kwargs):
-        pass
+
+    def predict(self, inputTriples):
+        return self.scoreOp(inputTriples)
     def normalizeEmbedding(self):
         '''
         The normalization for embedding, including relationEmbedding,entityEmbedding,hyperEmbedding.

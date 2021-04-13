@@ -118,16 +118,6 @@ class KG2E(Model):
         negScore = self.scoreOp(negX)
 
         return torch.sum(F.relu(input=posScore-negScore+self.margin))/size
-    def predict(self, *args, **kwargs):
-        pass
 
-
-
-
-
-
-
-
-
-
-
+    def predict(self, inputTriples):
+        return self.scoreOp(inputTriples)

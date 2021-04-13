@@ -5,7 +5,7 @@ from .TransD import TransD
 from .TransE import TransE
 from .TransH import TransH
 from .TransR import TransR
-
+from .others import SME,LFM,NTN
 __all__ = [
     'Model',
     'BaseModule',
@@ -14,5 +14,8 @@ __all__ = [
     'TransD',
     'TransH',
     'TransE',
-    'TransR'
+    'TransR',
+    'NTN',
+    'SME',
+    'LFM'
 ]

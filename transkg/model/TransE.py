@@ -66,8 +66,9 @@ class TransE(Model):
 
         # Get Margin ranking loss: max(posScore-negScore+margin,0)
         return torch.sum(F.relu(input=posScore-negScore+self.margin))/size
-    def predict(self,data):
-        pass
+
+    def predict(self, inputTriples):
+        return self.scoreOp(inputTriples)
     def normalizeEmbedding(self):
         '''
         In every training epoch,the entity embedding should be normalize first.\\
