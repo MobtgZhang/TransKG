@@ -49,7 +49,7 @@ class Config():
         TransR = {
 
                                 }
-        KG2E = {"EmbeddingDim": 100,
+        KG2E = {"EmbedDim": 100,
                      "Margin": 4.0,
                      "Sim": "EL",
                      "Vmin": 0.03,
@@ -62,7 +62,7 @@ class Config():
                            "KG2E":KG2E}
         self.use_gpu = torch.cuda.is_available()
         self.gpu_num = torch.cuda.device_count()
-        self.model_name = "TransD"
+        self.model_name = "TransA"
         self.alpha = 0
         self.weight_decay = 0
         self.train_times = 1
@@ -71,7 +71,7 @@ class Config():
         self.learningrate = 0.01
         self.lr_decay = 0.96
         self.lrdecayepoch = 5
-        self.opt_method = "SGD"
+        self.opt_method = "Adam"
         self.evalmethod = "MR"
         self.simmeasure = "L2"
         self.modelsave = "param"

@@ -1,6 +1,6 @@
 # TransKG:The translation model for knowledge Graph
 Knowledge Graph Embedding model collections implemented by Pytorch.Including TransE<sup>1</sup>,TransH<sup>2</sup>,TransR<sup>3</sup>,TransD<sup>4</sup>,TransA<sup>5</sup>,KG2E<sup>6</sup> models for Knowledge Graph.
-# Requirements
+# requirements
 + tqdm>=4.59.0
 + torch>=1.8.0
 + pandas>=1.2.3
