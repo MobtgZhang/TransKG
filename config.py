@@ -46,26 +46,37 @@ class Config():
                        "L": 2,
                        "Lamb": 0.01,
                        "C": 0.2}
-        TransR = {
-
-                                }
+        TransR = {"EmbeddingDim": 100,
+                       "Margin": 1.0,
+                       "L": 2,}
         KG2E = {"EmbedDim": 100,
                      "Margin": 4.0,
                      "Sim": "EL",
                      "Vmin": 0.03,
                      "Vmax": 3.0}
+        SME = {"EntityDim": 100,
+               "RelationDim": 100,
+               "L":2,
+               "ElementDot":True}
+        NTN = {"EntityDim": 100,
+               "RelationDim": 100,
+               "BaisFlag":True,
+               "RelFlag":True,
+               "Margin":1.0}
         self.model_dict = {"TransA":TransA,
                            "TransD":TransD,
                            "TransE":TransE,
                            "TransH":TransH,
                            "TransR":TransR,
-                           "KG2E":KG2E}
+                           "KG2E":KG2E,
+                           "SME":SME,
+                           "NTN":NTN}
         self.use_gpu = torch.cuda.is_available()
         self.gpu_num = torch.cuda.device_count()
-        self.model_name = "TransA"
+        self.model_name = "NTN"
         self.alpha = 0
         self.weight_decay = 0
-        self.train_times = 1
+        self.train_times = 10
         self.save_steps = 2
         self.evalepoch = 1
         self.learningrate = 0.01
