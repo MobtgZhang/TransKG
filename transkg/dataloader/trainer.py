@@ -7,24 +7,16 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 from .dataset import tripleDataset
-from ..model import TransE,TransH,TransD,TransA,KG2E
+from ..model import TransE,TransH,TransD,TransA,KG2E,TransR,SME,NTN,LFM
+
+from ..utils import MREvaluation,Hit10Evaluation
+from .tester import prepareDataloader
 def prepareTrainDataloader(train_path,entpath,relpath,
                           batch_size,shuffle,num_workers,drop_last):
     dataset = tripleDataset(posDataPath=train_path,
                             entityDictPath=entpath,
                             relationDictPath=relpath)
     dataset.generateNegSamples()
-    dataloader = DataLoader(dataset,
-                            batch_size=batch_size,
-                            shuffle=shuffle,
-                            num_workers=num_workers,
-                            drop_last=drop_last)
-    return dataloader
-def prepareValidDataloader(valid_path,entpath,relpath,
-                          batch_size,shuffle,num_workers,drop_last):
-    dataset = tripleDataset(posDataPath=valid_path,
-                            entityDictPath=entpath,
-                            relationDictPath=relpath)
     dataloader = DataLoader(dataset,
                             batch_size=batch_size,
                             shuffle=shuffle,
@@ -64,8 +56,8 @@ class Trainer:
         print("INFO : Prepare dataloader.")
         self.train_loader = prepareTrainDataloader(self.train_dir,self.ent_path,self.rel_path,
                           self.batch_size,self.shuffle,self.work_threads,self.drop_last)
-        #self.valid_loader = prepareValidDataloader(self.valid_dir, self.ent_path, self.rel_path,
-        #                                           self.batch_size, self.shuffle, self.work_threads, self.drop_last)
+        self.valid_loader = prepareDataloader(self.valid_dir, self.ent_path, self.rel_path,
+                                                   self.batch_size, self.shuffle, self.work_threads,)
         self.entityDict = json.load(open(self.ent_path,mode="r"))
         self.relationDict = json.load(open(self.rel_path,mode="r"))
     def prepareModel(self):
@@ -77,7 +69,13 @@ class Trainer:
                                 margin=self.model_dict["TransE"]["Margin"],
                                 L=self.model_dict["TransE"]["L"])
         elif self.model_name == "TransA":
-            self.model = None
+            self.model = TransA(ent_tot=len(self.entityDict["stoi"]),
+                                rel_tot=len(self.relationDict["stoi"]),
+                                emb_dim=self.model_dict["TransA"]["EmbeddingDim"],
+                                margin=self.model_dict["TransA"]["Margin"],
+                                L=self.model_dict["TransA"]["L"],
+                                lamb=self.model_dict["TransA"]["Lamb"],
+                                C=self.model_dict["TransA"]["C"])
         elif self.model_name == "TransH":
             self.model = TransH(ent_tot=len(self.entityDict["stoi"]),
                                 rel_tot=len(self.relationDict["stoi"]),
@@ -91,10 +89,37 @@ class Trainer:
                                 ent_dim=self.model_dict["TransD"]["EntityDim"],
                                 rel_dim=self.model_dict["TransD"]["RelationDim"],
                                 margin=self.model_dict["TransD"]["Margin"],
-                                L=self.model_dict["TransH"]["L"])
+                                L=self.model_dict["TransD"]["L"])
         elif self.model_name == "TransR":
-            self.model = None
+            self.model = TransR(ent_tot=len(self.entityDict["stoi"]),
+                                rel_tot=len(self.relationDict["stoi"]),
+                                emb_dim=self.model_dict["TransR"]["EmbeddingDim"],
+                                margin=self.model_dict["TransR"]["Margin"],
+                                L=self.model_dict["TransR"]["L"])
         elif self.model_name == "KG2E":
+            self.model = KG2E(ent_tot=len(self.entityDict["stoi"]),
+                                rel_tot=len(self.relationDict["stoi"]),
+                                emb_dim=self.model_dict["KG2E"]["EmbedDim"],
+                                margin=self.model_dict["KG2E"]["Margin"],
+                                sim=self.model_dict["KG2E"]["Sim"],
+                                vmin=self.model_dict["KG2E"]["Vmin"],
+                                vmax=self.model_dict["KG2E"]["Vmax"])
+        elif self.model_name == "SME":
+            self.model = SME(ent_tot=len(self.entityDict["stoi"]),
+                                rel_tot=len(self.relationDict["stoi"]),
+                                ent_dim=self.model_dict["SME"]["EntityDim"],
+                                rel_dim=self.model_dict["SME"]["RelationDim"],
+                                L=self.model_dict["SME"]["L"],
+                                ele_dot=self.model_dict["SME"]["ElementDot"])
+        elif self.model_name == "NTN":
+            self.model = NTN(ent_tot=len(self.entityDict["stoi"]),
+                                rel_tot=len(self.relationDict["stoi"]),
+                                ent_dim=self.model_dict["NTN"]["EntityDim"],
+                                rel_dim=self.model_dict["NTN"]["RelationDim"],
+                                bias_flag=self.model_dict["NTN"]["BaisFlag"],
+                                rel_flag=self.model_dict["NTN"]["RelFlag"],
+                                margin=self.model_dict["NTN"]["Margin"])
+        elif self.model_name == "LFM":
             self.model = None
         else:
             print("ERROR : No model named %s"%(self.model_name))
@@ -121,27 +146,13 @@ class Trainer:
             exit(1)
     def loadPretrainModel(self):
         print("INFO : Loading pre-training model:%s!" % self.model_name)
-        if self.model_name == "TransE":
-            modelType = os.path.splitext(self.pre_model)[-1]
-            if modelType == ".json":
-                self.model.load_parameters(self.pre_model)
-            elif modelType == ".pt":
-                self.model.load_checkpoint(self.pre_model)
-            else:
-                print("ERROR : Model type %s is not supported!"%self.model_name)
-                exit(1)
-        elif self.model_name == "TransA":
-            self.model = None
-        elif self.model_name == "TransH":
-            self.model = None
-        elif self.model_name == "TransD":
-            self.model = None
-        elif self.model_name == "TransR":
-            self.model = None
-        elif self.model_name == "KG2E":
-            self.model = None
+        modelType = os.path.splitext(self.pre_model)[-1]
+        if modelType == ".json":
+            self.model.load_parameters(self.pre_model)
+        elif modelType == ".pt":
+            self.model.load_checkpoint(self.pre_model)
         else:
-            print("ERROR : No model named %s" % (self.model_name))
+            print("ERROR : Model type %s is not supported!" % self.model_name)
             exit(1)
     def run(self):
         if self.use_gpu:
@@ -182,8 +193,11 @@ class Trainer:
             for posX,negX in self.train_loader:
                 loss = self.train_one_step(posX,negX)
                 res += loss
+            # print the details of the model.
+            # validation
+            # MREvaluation(self.valid_loader,self.model_name,simMeasure)
             training_range.set_description("Epoch %d | loss: %f"%(epoch,res))
-            if self.save_steps and self.checkpoints_dir and (epoch+1)%self.save_steps == 0:
+            if self.save_steps and self.checkpoints_dir and (epoch)%self.save_steps == 0:
                 self.model.save_checkpoint(os.path.join(root,self.model_name+"-"+str(epoch)+".ckpt"))
     def train_one_step(self,posX,negX):
         # normalize the embedding
