@@ -8,16 +8,16 @@ class Config():
     def __init__(self):
         self.train_dir = "./data/train.txt"
         self.valid_dir = "./data/valid.txt"
-        self.test_dir = "./data/valid.txt"
-        self.ent_path = "./source/dict/entityDict.json"
-        self.rel_path = "./source/dict/relationDict.json"
-        self.embed_path = "./source/embed/"
-        self.checkpoints_dir = "./checkpoints"
+        self.test_dir = "./data/test.txt"
 
+        self.checkpoints_dir = "./checkpoints"
+        self.dict_dir = os.path.join(self.checkpoints_dir,"dict")
+        self.ent_path = os.path.join(self.checkpoints_dir,"dict","entityDict.json")
+        self.rel_path = os.path.join(self.checkpoints_dir, "dict", "relationDict.json")
         self.train_raw = "./data/freebase_mtr100_mte100-train.txt"
         self.valid_raw = "./data/freebase_mtr100_mte100-valid.txt"
         self.test_raw = "./data/freebase_mtr100_mte100-test.txt"
-        self.dict_dir = "./source/dict/"
+
 
 
         # Data loader arguments
@@ -73,7 +73,7 @@ class Config():
                            "NTN":NTN}
         self.use_gpu = torch.cuda.is_available()
         self.gpu_num = torch.cuda.device_count()
-        self.model_name = "NTN"
+        self.model_name = "TransE"
         self.alpha = 0
         self.weight_decay = 0
         self.train_times = 10
@@ -83,16 +83,12 @@ class Config():
         self.lr_decay = 0.96
         self.lrdecayepoch = 5
         self.opt_method = "Adam"
-        self.evalmethod = "MR"
-        self.simmeasure = "L2"
-        self.modelsave = "param"
-        self.modelpath = "./source/model/"
+        self.eval_method = "MR"
+        self.sim_measure = "L2"
         self.load_embed = False
         self.load_model = False
-        self.embed_file = "./source/embed/embedding.npz"
-        self.entity_file = "./source/embed/entityEmbedding.txt"
-        self.relation_file = "./source/embed/relationEmbedding.txt"
-        self.pre_model = None
+        self.embed_file = os.path.join(self.checkpoints_dir,self.model_name,"embeddings.npz")
+        self.pre_model = "./checkpoints/KG2E/KG2E.ckpt"
         # Other arguments
         self.summary_dir = os.path.join(self.checkpoints_dir,self.model_name,"summary")
         # check path
@@ -127,8 +123,6 @@ class Config():
         checkPath(self.valid_dir)
         checkPath(self.test_dir)
         # Check dirs
-        checkPath(self.modelpath,raise_error=False)
         checkPath(self.checkpoints_dir,raise_error=False)
         checkPath(self.summary_dir,raise_error=False)
-        checkPath(self.embed_path,raise_error=False)
         checkPath(self.dict_dir,raise_error=False)

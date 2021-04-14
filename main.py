@@ -25,8 +25,10 @@ def main():
     trainModel.run()
     trainModel.save()
     # test model
-    testModel = Tester()
-    testModel.test()
+    testModel = Tester(args)
+    testModel.load_data(args.test_dir)
+    testModel.load_embedding(args.embed_file)
+    testModel.run_link_prediction()
     sumWriter.close()
 if __name__ == '__main__':
     # Print args
