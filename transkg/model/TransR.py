@@ -39,6 +39,8 @@ class TransR(Model):
         head = torch.squeeze(self.entEmbedding(head),dim=1)
         relation = torch.squeeze(self.relEmbedding(relation),dim=1)
         tail = torch.squeeze(self.entEmbedding(tail),dim=1)
+        head = torch.matmul(head,self.transfer)
+        tail = torch.matmul(tail,self.transfer)
         # Step3 and Step4
         score = self.distfn(head+relation,tail)
         return score
@@ -69,5 +71,10 @@ class TransR(Model):
         :return:
         '''
         return {"entEmbedding":self.entEmbedding.weight.detach().cpu().numpy(),
-                "relEmbedding":self.relEmbedding.weight.detach().cpu().numpy()}
-
+                "relEmbedding":self.relEmbedding.weight.detach().cpu().numpy(),
+                "transfer":self.transfer.detach().cpu().numpy()}
+    def initialWeight(self,filename):
+        embeddings = np.load(filename, allow_pickle=True)
+        self.entEmbedding.weight.data.copy_(embeddings["entEmbedding"])
+        self.relEmbedding.weight.data.copy_(embeddings["relEmbedding"])
+        self.transfer.data.copy_(embeddings["transfer"])

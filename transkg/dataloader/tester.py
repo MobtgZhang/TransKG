@@ -1,11 +1,12 @@
 import os
 import torch
 import json
-from tqdm import tqdm
+import numpy as np
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
 from .dataset import tripleDataset
+from ..utils import MREvaluation
 
 def prepareDataloader(dataset_path,entpath,relpath,
                           batch_size,shuffle,num_workers):
@@ -28,26 +29,23 @@ class Tester:
         self.ent_path = args.ent_path
         self.rel_path = args.rel_path
         self.test_dir = args.test_dir
+        self.model_dict = args.model_dict
+        self.pre_model = args.pre_model
+        self.sim_measure = args.sim_measure
         # dataset loader
         self.data_loader = None
+    def load_embedding(self,filename):
+        self.embeddings = np.load(filename, allow_pickle=True)
     def run_link_prediction(self):
         # initialize test preparing
         root = os.path.join(self.checkpoints_dir, self.model_name)
         if not os.path.exists(root):
             print("INFO : making dirs %s" % root)
             os.makedirs(root)
-        for data in self.data_loader:
-            pass
-
-    def load_model(self,pre_model):
-        modelType = os.path.splitext(pre_model)[-1]
-        if modelType == ".json":
-            self.model.load_parameters(pre_model)
-        elif modelType == ".pt":
-            self.model.load_checkpoint(pre_model)
-        else:
-            print("ERROR : Model type %s is not supported!" % self.model_name)
-            exit(1)
+        MeanRanks = MREvaluation(self.data_loader,self.model_name,simMeasure=self.sim_measure,**self.embeddings)
+        print("MR score for model: %s is %f."%(self.model_name,MeanRanks))
+        with open(os.path.join(self.checkpoints_dir,self.model_name,"result.txt"),mode="w",encoding="utf-8") as wfp:
+            wfp.write("mr score: %f"%MeanRanks)
     def load_data(self,filename):
         print("INFO : Prepare test dataloader.")
         self.data_loader = prepareDataloader(filename, self.ent_path, self.rel_path,
@@ -63,4 +61,3 @@ class Tester:
             return Variable(torch.from_numpy(x).cuda())
         else:
             return Variable(torch.from_numpy(x))
-

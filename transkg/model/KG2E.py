@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -100,16 +101,6 @@ class KG2E(Model):
         self.relCovar.weight.data.copy_(torch.clamp(input=self.relCovar.weight.detach().cpu(),
                                                          min=self.vmin,
                                                          max=self.vmax))
-    def retEvalWeights(self):
-        '''
-        Return the KG2E model embedding.
-        :return:
-        '''
-        return {"entEmbedding":self.entEmbedding.weight.detach().cpu().numpy(),
-                "relationEmbedding":self.relEmbedding.weight.detach().cpu().numpy(),
-                "entCovar":self.entCovar.weight.detach().cpu().numpy(),
-                "relationCovar":self.relCovar.weight.detach().cpu().numpy(),
-                "Sim":self.sim}
     def forward(self,posX,negX):
         size = posX.size()[0]
 
@@ -121,3 +112,20 @@ class KG2E(Model):
 
     def predict(self, inputTriples):
         return self.scoreOp(inputTriples)
+    def retEvalWeights(self):
+        '''
+        Return the KG2E model embedding.
+        :return:
+        '''
+        return {"entEmbedding":self.entEmbedding.weight.detach().cpu().numpy(),
+                "relEmbedding":self.relEmbedding.weight.detach().cpu().numpy(),
+                "entCovar":self.entCovar.weight.detach().cpu().numpy(),
+                "relCovar":self.relCovar.weight.detach().cpu().numpy(),
+                "sim":self.sim}
+    def initialWeight(self,filename):
+        embeddings = np.load(filename, allow_pickle=True)
+        self.entEmbedding.weight.data.copy_(embeddings["entEmbedding"])
+        self.relEmbedding.weight.data.copy_(embeddings["relEmbedding"])
+        self.entCovar.weight.data.copy_(embeddings["entCovar"])
+        self.relCovar.weight.data.copy_(embeddings["relCovar"])
+        self.sim = embeddings["sim"]

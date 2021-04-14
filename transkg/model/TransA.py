@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -24,7 +25,7 @@ class TransA(Model):
                                          embedding_dim=emb_dim)
         self.relEmbedding = nn.Embedding(num_embeddings=rel_tot,
                                          embedding_dim=emb_dim)
-        self.relWeights = nn.Parameter(torch.rand(size=(rel_tot,emb_dim,emb_dim)),requires_grad=True)
+        self.relWeight = nn.Parameter(torch.rand(size=(rel_tot,emb_dim,emb_dim)),requires_grad=True)
         self.distfn = nn.PairwiseDistance(L)
     def scoreOp(self,inputTriples):
         '''
@@ -36,7 +37,7 @@ class TransA(Model):
         :return:
         '''
         head,relation,tail = torch.chunk(input=inputTriples,chunks=3,dim=1)
-        relWr = self.relWeights[relation]
+        relWr = self.relWeight[relation]
         head = torch.squeeze(self.entEmbedding(head),dim=1)
         relation = torch.squeeze(self.relEmbedding(relation),dim=1)
         tail = torch.squeeze(self.entEmbedding(tail),dim=1)
@@ -48,7 +49,7 @@ class TransA(Model):
         Clean the relation weight.
         :return:
         '''
-        self.relWeights.data.copy_(torch.zeros(size=(self.rel_tot,self.emb_dim,self.emb_dim)))
+        self.relWeight.data.copy_(torch.zeros(size=(self.rel_tot,self.emb_dim,self.emb_dim)))
     def calculateWr(self,posX,negX):
         '''
         :param posX:
@@ -66,7 +67,7 @@ class TransA(Model):
         errorPos = torch.abs(posHeadM+posRelM-posTailM)
         errorNeg = torch.abs(negHeadM+negRelM-negTailM)
         del posHeadM,posRelM,posTailM,negHeadM,negRelM,negTailM
-        self.relWeights.data[posRel] += torch.sum(torch.matmul(errorNeg.permute((0, 2, 1)), errorNeg),dim=0) - \
+        self.relWeight.data[posRel] += torch.sum(torch.matmul(errorNeg.permute((0, 2, 1)), errorNeg),dim=0) - \
                                                torch.sum(torch.matmul(errorPos.permute((0, 2, 1)), errorPos), dim=0)
 
     def forward(self,posX,negX):
@@ -83,7 +84,7 @@ class TransA(Model):
         negScore = self.scoreOp(negX)
         # Calculate loss
         marginLoss = 1/size * torch.sum(F.relu(input=posScore-negScore+self.margin))
-        WrLoss = 1/size * torch.norm(input=self.relWeights.data,p=self.L)
+        WrLoss = 1/size * torch.norm(input=self.relWeight.data,p=self.L)
         WLoss = 1/self.ent_tot * torch.norm(input=self.entEmbedding.weight,p=2)+\
             1/self.rel_tot * torch.norm(input=self.relEmbedding.weight,p=2)
         return marginLoss+WrLoss+WLoss
@@ -104,10 +105,12 @@ class TransA(Model):
                                                          p=2,
                                                          dim=0,
                                                          maxnorm=1.0))
-        self.relWeights.data.copy_(torch.renorm(input=self.relWeights.data.detach().cpu(),
+        self.relWeight.data.copy_(torch.renorm(input=self.relWeight.data.detach().cpu(),
                                                          p=2,
                                                          dim=0,
                                                          maxnorm=1.0))
+    def predict(self, inputTriples):
+        return self.scoreOp(inputTriples)
     def retEvalWeights(self):
         '''
         Return the embedding of the model.
@@ -115,6 +118,10 @@ class TransA(Model):
         '''
         return {"entEmbedding":self.entEmbedding.weight.detach().cpu().numpy(),
                 "relEmbedding":self.relEmbedding.weight.detach().cpu().numpy(),
-                "relWeight":self.relWeights.detach().cpu().numpy()}
-    def predict(self, inputTriples):
-        return self.scoreOp(inputTriples)
+                "relWeight":self.relWeight.detach().cpu().numpy()}
+    def initialWeight(self,filename):
+        embeddings = np.load(filename, allow_pickle=True)
+        self.entEmbedding.weight.data.copy_(embeddings["entEmbedding"])
+        self.relEmbedding.weight.data.copy_(embeddings["relEmbedding"])
+        self.relWeight.data.copy_(embeddings["relWeight"])
+

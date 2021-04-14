@@ -82,46 +82,9 @@ class TransE(Model):
         weight = weight / np.sqrt(np.sum(np.square(weight), axis=1, keepdims=True))
         self.entEmbedding.weight.data.copy_(torch.from_numpy(weight))
     def retEvalWeights(self):
-        return {"entityEmbedding":self.entEmbedding.weight.detach().cpu().numpy(),
-                "relationEmbedding":self.relEmbedding.weight.detach().cpu().numpy()}
-    def initialWeights(self,entityEmbedFile,entityDict,
-                       relationEmbedFile,relationDict,fileType="txt"):
-        '''
-        Uesed to load pretraining entity and relation embedding.
-        Implementation steps list as following:
-        Method one: (Assign the pre-training vector one by one)
-        ==> Step1: Read one line at a time,split the line as entity string and embed vector.
-        ==> Step2: Transform the embed vector to np.array
-        ==> Step3: Look up entityDict, find the index of the entity from entityDict, assign
-                    the embed vector from step1 to the embedding matrix.
-        ==> Step4: Repeat steps above until all line are checked.
-        Method two: (Assign the pre-training at one time)
-        ==> Step1: Initial a weight with the same shape of the embedding matrix.
-        ==> Step2: Read every line of the EmbedFile and assign the vector to the initialized weight.
-        ==> Step3: Assign the initialized weight to the embedding matrix at one time after all line are checked.
-        :param entityEmbedFile:
-        :param entityDict:
-        :param relationEmbedFile:
-        :param relationDict:
-        :param fileType:
-        :return:
-        '''
-        print("INFO : Loading entity pre-training embedding.")
-        with codecs.open(entityEmbedFile,mode="r",encoding="utf-8") as rfp:
-            _,embDim = rfp.readline().strip().split()
-            assert (int(embDim) == self.entEmbedding.weight.size()[-1])
-            for line in rfp:
-                ent,embed = line.strip().split("\t")
-                embed = np.array(embed.split(","),dtype=np.float32)
-                if ent in entityDict:
-                    self.entEmbedding.weight.data[entityDict[ent]].copy_(torch.from_numpy(embed))
-        print("INFO : Loading relation pre-training embedding.")
-        with codecs.open(entityEmbedFile,mode="r",encoding="utf-8") as rfp:
-            _,embDim = rfp.readline().strip().split()
-            assert (int(embDim) == self.relEmbedding.weight.size()[-1])
-            for line in rfp:
-                rel,embed = line.strip().split("\t")
-                embed = np.array(embed.split(","),dtype=np.float32)
-                if rel in entityDict:
-                    self.relEmbedding.weight.data[relationDict[rel]].copy_(torch.from_numpy(embed))
-
+        return {"entEmbedding":self.entEmbedding.weight.detach().cpu().numpy(),
+                "relEmbedding":self.relEmbedding.weight.detach().cpu().numpy()}
+    def initialWeight(self,filename):
+        embeddings = np.load(filename, allow_pickle=True)
+        self.entEmbedding.weight.data.copy_(embeddings["entEmbedding"])
+        self.relEmbedding.weight.data.copy_(embeddings["relEmbedding"])

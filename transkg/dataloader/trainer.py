@@ -38,6 +38,7 @@ class Trainer:
         self.shuffle = args.shuffle
         self.model_dict = args.model_dict
         self.pre_model = args.pre_model
+        self.emb_file = args.emb_file
 
         self.model = None
         self.train_loader = None
@@ -50,8 +51,6 @@ class Trainer:
         self.valid_dir = args.valid_dir
         self.ent_path = args.ent_path
         self.rel_path = args.rel_path
-        self.entity_file = args.entity_file
-        self.relation_file = args.relation_file
     def prepareData(self):
         print("INFO : Prepare dataloader.")
         self.train_loader = prepareTrainDataloader(self.train_dir,self.ent_path,self.rel_path,
@@ -126,24 +125,7 @@ class Trainer:
             exit(1)
     def loadPretrainEmbedding(self):
         print("INFO : Loading pre-training entity and relation embedding:%s!"%self.model_name)
-        if self.model_name == "TransE":
-            self.model.initialWeight(entityEmbedFile=self.entity_file,
-                                     entityDict=self.entityDict["stoi"],
-                                     relationEmbedFile=self.relation_file,
-                                     relationDict=self.relationDict["stoi"])
-        elif self.model_name == "TransA":
-            pass
-        elif self.model_name == "TransH":
-            pass
-        elif self.model_name == "TransD":
-            pass
-        elif self.model_name == "TransR":
-            pass
-        elif self.model_name == "KG2E":
-            pass
-        else:
-            print("ERROR : No model named %s" % (self.model_name))
-            exit(1)
+        self.model.initialWeight(self.emb_file)
     def loadPretrainModel(self):
         print("INFO : Loading pre-training model:%s!" % self.model_name)
         modelType = os.path.splitext(self.pre_model)[-1]
@@ -222,7 +204,7 @@ class Trainer:
         if not os.path.exists(root):
             print("INFO : making dirs %s"%root)
             os.makedirs(root)
-        np.savez(os.path.join(root,"embeddings.npz"),output)
+        np.savez(os.path.join(root,"embeddings.npz"),**output)
         # save model
         self.model.save_checkpoint(os.path.join(root, self.model_name + ".ckpt"))
         # save model parameters

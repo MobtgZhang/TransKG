@@ -88,6 +88,11 @@ class TransH(Model):
         The embedding for the model to save
         :return:
         '''
-        return {"entityEmbedding": self.entEmbedding.weight.detach().cpu().numpy(),
-                "relationEmbedding": self.relEmbedding.weight.detach().cpu().numpy(),
-                "hyperEmbedding": self.relationHyper.weight.detach().cpu().numpy()}
+        return {"entEmbedding": self.entEmbedding.weight.detach().cpu().numpy(),
+                "relEmbedding": self.relEmbedding.weight.detach().cpu().numpy(),
+                "relationHyper": self.relationHyper.weight.detach().cpu().numpy()}
+    def initialWeight(self,filename):
+        embeddings = np.load(filename, allow_pickle=True)
+        self.entEmbedding.weight.data.copy_(embeddings["entEmbedding"])
+        self.relEmbedding.weight.data.copy_(embeddings["relEmbedding"])
+        self.relationHyper.weight.data.copy_(embeddings["relationHyper"])

@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -70,15 +71,6 @@ class TransD(Model):
                                                               p=2,
                                                               dim=0,
                                                               maxnorm=1))
-    def retEvalWeights(self):
-        '''
-        Return the weights of the TransD model.
-        :return:
-        '''
-        return {"entityEmbedding": self.entEmbedding.weight.detach().cpu().numpy(),
-                "relationEmbedding": self.relEmbedding.weight.detach().cpu().numpy(),
-                "entityMapEmbedding": self.entMapEmbedding.weight.detach().cpu().numpy(),
-                "relationMapEmbedding": self.relMapEmbedding.weight.detach().cpu().numpy()}
     def forward(self,posX,negX):
         size = posX.size()[0]
         # Calculate the score
@@ -88,4 +80,18 @@ class TransD(Model):
 
     def predict(self, inputTriples):
         return self.scoreOp(inputTriples)
-
+    def retEvalWeights(self):
+        '''
+        Return the weights of the TransD model.
+        :return:
+        '''
+        return {"entEmbedding": self.entEmbedding.weight.detach().cpu().numpy(),
+                "relEmbedding": self.relEmbedding.weight.detach().cpu().numpy(),
+                "entMapEmbedding": self.entMapEmbedding.weight.detach().cpu().numpy(),
+                "relMapEmbedding": self.relMapEmbedding.weight.detach().cpu().numpy()}
+    def initialWeight(self,filename):
+        embeddings = np.load(filename, allow_pickle=True)
+        self.entEmbedding.weight.data.copy_(embeddings["entEmbedding"])
+        self.relEmbedding.weight.data.copy_(embeddings["relEmbedding"])
+        self.entMapEmbedding.weight.data.copy_(embeddings["entMapEmbedding"])
+        self.relMapEmbedding.weight.data.copy_(embeddings["relMapEmbedding"])

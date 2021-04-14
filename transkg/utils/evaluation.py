@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 def calSimilarity(expTailMatrix:np.ndarray,tailEmbedding:np.ndarray,simMeasure="dot"):
     '''
     This is the similarity of the tail vector and real one.
@@ -30,7 +31,7 @@ def calSimilarity(expTailMatrix:np.ndarray,tailEmbedding:np.ndarray,simMeasure="
         aScore = expTailMatrix / np.linalg.norm(expTailMatrix,ord=2,axis=1,keepdims=True)
         bScore = tailEmbedding / np.linalg.norm(expTailMatrix,ord=2,axis=1,keepdims=True)
         return np.matmul(aScore,bScore).T
-def calRank(simScore:np.ndarray,tail:np.ndarray,simMeasure:str):
+def calRank(simScore,tail,simMeasure):
     '''
     This method calculate the rank of the right tail.
     :param simScore(N,entityNum): The similarity score of the entity and the relation.
@@ -49,7 +50,7 @@ def calRank(simScore:np.ndarray,tail:np.ndarray,simMeasure:str):
     assert (simMeasure.lower() in {"dot", "cos", "l2", "l1"})
     realScore = simScore[np.arange(tail.shape[0]),tail].reshape((-1,1))
     judMatrix = simScore - realScore
-    if simScore in {"dot","cos"}:
+    if simMeasure in {"dot","cos"}:
         judMatrix[judMatrix>0] =1
         judMatrix[judMatrix<0] =0
         score = np.sum(judMatrix,axis=1)
@@ -171,13 +172,12 @@ def evalTransE(head,relation,tail,simMeasure,**kargs):
     :return: The rank score of the TransE model.
     '''
     # This method is to gather the embedding together for calculating.
-    head = np.take(kargs["entityEmbed"],indices=head,axis=0)
-    relation = np.take(kargs["relationEmbed"],indices=relation,axis=0)
+    head = np.take(kargs["entEmbedding"],indices=head,axis=0)
+    relation = np.take(kargs["relEmbedding"],indices=relation,axis=0)
     # tail = np.take(kargs["entityEmbed"],indices=tail,axis=0)
     # Calculate the similarity score and get the rank.
-    simScore = calSimilarity(head+relation,kargs["entityEmbed"],simMeasure=simMeasure)
-    ranks = calRank(simScore,tail,simMeasure=simMeasure)
-    return ranks
+    simScore = calSimilarity(head+relation,kargs["entEmbedding"],simMeasure=simMeasure)
+    return simScore
 def evalTransH(head,relation,tail,simMeasure,**kargs):
     '''
     This is the eval method of TransH.
@@ -191,15 +191,14 @@ def evalTransH(head,relation,tail,simMeasure,**kargs):
     :return: The rank score of the TransE model.
     '''
     # This method is to gather the embedding together for calculating.
-    head = np.take(kargs["entityEmbedding"], indices=head, axis=0)
-    hyper = np.take(kargs["hyperEmbedding"], indices=relation, axis=0)
-    relation = np.take(kargs["relationEmbedding"], indices=relation, axis=0)
-    # tail = np.take(kargs["entityEmbedding"], indices=tail, axis=0)
+    head = np.take(kargs["entEmbedding"], indices=head, axis=0)
+    hyper = np.take(kargs["relationHyper"], indices=relation, axis=0)
+    relation = np.take(kargs["relEmbedding"], indices=relation, axis=0)
+    # tail = np.take(kargs["entEmbedding"], indices=tail, axis=0)
     # projection of the embedding
     head = head - hyper * np.sum(hyper*head,axis=1,keepdims=True)
-    simScore = calHyperSim(head+relation,kargs["entityEmbedding"],hyper,simMeasure)
-    ranks = calRank(simScore,tail,simMeasure)
-    return ranks
+    simScore = calHyperSim(head+relation,kargs["entEmbedding"],hyper,simMeasure)
+    return simScore
 def evalTransR(head,relation,tail,simMeasure,**kargs):
     '''
     This is the evaluation method of TransR model.
@@ -213,13 +212,11 @@ def evalTransR(head,relation,tail,simMeasure,**kargs):
     # Gather all the embedding
     head = np.take(kargs["entEmbedding"],indices=head,axis=0)
     relation = np.take(kargs["relEmbedding"],indices=relation,axis=0)
-    tail = np.take(kargs["entEmbedding"],indices=tail,axis=0)
     MR = kargs["transfer"]
     head = np.matmul(head,MR)
     # tail = np.matmul(tail,MR)
-    simScore = calSimilarity(head+relation,kargs["entityEmbedding"],simMeasure)
-    ranks = calRank(simScore, tail, simMeasure)
-    return ranks
+    simScore = calSimilarity(head+relation,kargs["entEmbedding"],simMeasure)
+    return simScore
 def evalTransD(head,relation,tail,simMeasure,**kargs):
     '''
     The method of calculate TransD model score.
@@ -244,8 +241,7 @@ def evalTransD(head,relation,tail,simMeasure,**kargs):
     head = np.squeeze(np.matmul(MrH,head[:,:,np.newaxis]),axis=2)
     # tail = np.squeeze(np.matmul(MrT,tail[:,:,np.newaxis]),axis=2)
     simScore = calMapSim(head+relation,kargs["entEmbedding"],kargs["entMapEmbedding"],relationp,simMeasure=simMeasure)
-    ranks = calRank(simScore,tail,simMeasure=simMeasure)
-    return ranks
+    return simScore
 def evalTransA(head,relation,tail,**kargs):
     '''
     This method aims to calculate the score of the TransA model.
@@ -260,8 +256,7 @@ def evalTransA(head,relation,tail,**kargs):
     relation = np.take(kargs["relEmbedding"],indices=relation,axis=0)
     # Calculate simScore
     simScore = calWeightSim(head+relation,kargs["entEmbedding"],kargs["relWeight"])
-    ranks = calRank(simScore,tail,simMeasure="L2")
-    return ranks
+    return simScore
 def evalKG2E(head,relation,tail,**kargs):
     '''
     The method of calculating KG2E model.
@@ -274,12 +269,13 @@ def evalKG2E(head,relation,tail,**kargs):
     # Gather embedding
     headv = np.take(kargs["entCovar"],indices=head,axis=0)
     headm = np.take(kargs["entEmbedding"],indices=head,axis=0)
-    relationv = np.take(kargs["relationCovar"],indices=relation,axis=0)
-    relationm = np.take(kargs["relationEmbedding"],indices=relation,axis=0)
+    relationv = np.take(kargs["relCovar"],indices=relation,axis=0)
+    relationm = np.take(kargs["relEmbedding"],indices=relation,axis=0)
     # Calculdate simScore
     simScore = calKLSim(headm,headv,relationm,relationv,kargs["entEmbedding"],kargs["entCovar"],simMeasure=kargs["Sim"])
-    ranks = calRank(simScore,tail,simMeasure="L2")
-    return ranks
+    return simScore
+def calHit10(simScore, tail, simMeasure="dot"):
+    pass
 def MREvaluation(dataloader,model_name,simMeasure="dot",**kargs):
     '''
     This is the implementation of MR metric, that is MR represents Mean Rank Metric.
@@ -291,25 +287,48 @@ def MREvaluation(dataloader,model_name,simMeasure="dot",**kargs):
     '''
     R = 0
     N = 0
-    for item in dataloader:
+    for item in tqdm(dataloader,desc="mr socre process:"):
         head,relation,tail = item[:,0],item[:,1],item[:,2]
         if model_name == "TransE":
-            ranks = evalTransE(head,relation,tail,simMeasure,**kargs)
+            simScore = evalTransE(head,relation,tail,simMeasure,**kargs)
         elif model_name == "TransH":
-            ranks = evalTransH(head,relation,tail,simMeasure,**kargs)
+            simScore = evalTransH(head,relation,tail,simMeasure,**kargs)
         elif model_name == "TransR":
-            ranks = evalTransR(head,relation,tail,simMeasure,**kargs)
+            simScore = evalTransR(head,relation,tail,simMeasure,**kargs)
         elif model_name == "TransD":
-            ranks = evalTransD(head,relation,tail,simMeasure,**kargs)
+            simScore = evalTransD(head,relation,tail,simMeasure,**kargs)
         elif model_name == "TransA":
-            ranks = evalTransA(head,relation,tail,**kargs)
+            simScore = evalTransA(head,relation,tail,**kargs)
         elif model_name == "KG2E":
-            ranks = evalKG2E(head,relation,tail,**kargs)
+            simScore = evalKG2E(head,relation,tail,**kargs)
         else:
             print("ERROR : The %s evaluation is not supported!"%model_name)
             exit(1)
+        ranks = calRank(simScore, tail, simMeasure=simMeasure)
         R += np.sum(ranks)
         N += ranks.shape[0]
     return R/N
-def Hit10Evaluation(dataloader,model_name,simMeasure="dot",**kwargs):
-    pass
+def Hit10Evaluation(dataloader,model_name,simMeasure="dot",**kargs):
+    R = 0
+    N = 0
+    for item in tqdm(dataloader, desc="mr socre process:"):
+        head, relation, tail = item[:, 0], item[:, 1], item[:, 2]
+        if model_name == "TransE":
+            simScore = evalTransE(head, relation, tail, simMeasure, **kargs)
+        elif model_name == "TransH":
+            simScore = evalTransH(head, relation, tail, simMeasure, **kargs)
+        elif model_name == "TransR":
+            simScore = evalTransR(head, relation, tail, simMeasure, **kargs)
+        elif model_name == "TransD":
+            simScore = evalTransD(head, relation, tail, simMeasure, **kargs)
+        elif model_name == "TransA":
+            simScore = evalTransA(head, relation, tail, **kargs)
+        elif model_name == "KG2E":
+            simScore = evalKG2E(head, relation, tail, **kargs)
+        else:
+            print("ERROR : The %s evaluation is not supported!" % model_name)
+            exit(1)
+        hit10score = calHit10(simScore, tail, simMeasure=simMeasure)
+        R += np.sum(hit10score)
+        N += hit10score.shape[0]
+    return R / N

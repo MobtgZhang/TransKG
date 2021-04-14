@@ -26,3 +26,34 @@ def checkPath(path, raise_error=True):
             os.makedirs(path)
             print("INFO : Successfully making dir!")
     return
+def getTestLinkMRR():
+    pass
+def getTestLinkMR():
+    pass
+def getTestLinkHit10():
+    pass
+def getTestLinkHit3():
+    pass
+def getTestLinkHit1():
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
