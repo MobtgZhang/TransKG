@@ -1,4 +1,6 @@
 import os
+import logging
+logger = logging.getLogger(__name__)
 def printArgs(args):
     '''
     This method is used for print the args in the console terminal.
@@ -18,42 +20,11 @@ def checkPath(path, raise_error=True):
     '''
     if not os.path.exists(path):
         if raise_error:
-            print("ERROR : Path %s does not exist!" % path)
+            logger.info("Path %s does not exist!" % path)
             exit(1)
         else:
-            print("WARNING : Path %s does not exist!" % path)
-            print("INFO : Creating path %s." % path)
+            logger.info("Path %s does not exist!" % path)
+            logger.info("Creating path %s." % path)
             os.makedirs(path)
-            print("INFO : Successfully making dir!")
+            logger.info("Successfully making dir!")
     return
-def getTestLinkMRR():
-    pass
-def getTestLinkMR():
-    pass
-def getTestLinkHit10():
-    pass
-def getTestLinkHit3():
-    pass
-def getTestLinkHit1():
-    pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
