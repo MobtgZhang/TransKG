@@ -93,10 +93,6 @@ class TransA(Model):
         Normalize the embedding.
         :return:
         '''
-        '''
-                Normalize the embedding.
-                :return:
-                '''
         self.entEmbedding.weight.data.copy_(torch.renorm(input=self.entEmbedding.weight.detach().cpu(),
                                                          p=2,
                                                          dim=0,
@@ -109,8 +105,6 @@ class TransA(Model):
                                                          p=2,
                                                          dim=0,
                                                          maxnorm=1.0))
-    def predict(self, inputTriples):
-        return self.scoreOp(inputTriples)
     def retEvalWeights(self):
         '''
         Return the embedding of the model.
@@ -124,4 +118,5 @@ class TransA(Model):
         self.entEmbedding.weight.data.copy_(embeddings["entEmbedding"])
         self.relEmbedding.weight.data.copy_(embeddings["relEmbedding"])
         self.relWeight.data.copy_(embeddings["relWeight"])
-
+    def predictSimScore(self,head,relation,simMeasure="dot"):
+        pass

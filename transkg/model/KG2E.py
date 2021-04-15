@@ -109,9 +109,6 @@ class KG2E(Model):
         negScore = self.scoreOp(negX)
 
         return torch.sum(F.relu(input=posScore-negScore+self.margin))/size
-
-    def predict(self, inputTriples):
-        return self.scoreOp(inputTriples)
     def retEvalWeights(self):
         '''
         Return the KG2E model embedding.
@@ -129,3 +126,5 @@ class KG2E(Model):
         self.entCovar.weight.data.copy_(embeddings["entCovar"])
         self.relCovar.weight.data.copy_(embeddings["relCovar"])
         self.sim = embeddings["sim"]
+    def predictSimScore(self,head,relation,simMeasure="dot"):
+        pass

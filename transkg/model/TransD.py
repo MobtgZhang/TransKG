@@ -77,9 +77,6 @@ class TransD(Model):
         posScore = self.scoreOp(posX)
         negScore = self.scoreOp(negX)
         return torch.sum(F.relu(input=posScore-negScore+self.margin))/size
-
-    def predict(self, inputTriples):
-        return self.scoreOp(inputTriples)
     def retEvalWeights(self):
         '''
         Return the weights of the TransD model.
@@ -95,3 +92,5 @@ class TransD(Model):
         self.relEmbedding.weight.data.copy_(embeddings["relEmbedding"])
         self.entMapEmbedding.weight.data.copy_(embeddings["entMapEmbedding"])
         self.relMapEmbedding.weight.data.copy_(embeddings["relMapEmbedding"])
+    def predictSimScore(self,head,relation,simMeasure="dot"):
+        pass

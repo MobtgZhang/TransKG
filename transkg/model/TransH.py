@@ -27,7 +27,7 @@ class TransH(Model):
                                          embedding_dim=emb_dim)
         self.relEmbedding = nn.Embedding(num_embeddings=rel_tot,
                                          embedding_dim=emb_dim)
-        self.relationHyper = nn.Embedding(num_embeddings=rel_tot,
+        self.relHyper = nn.Embedding(num_embeddings=rel_tot,
                                           embedding_dim=emb_dim)
         self.distfn = nn.PairwiseDistance(L)
     def scoreOp(self,inputTriple):
@@ -45,7 +45,7 @@ class TransH(Model):
         head,relation,tail = torch.chunk(inputTriple,chunks=3,dim=1)
         # Step2
         head = torch.squeeze(self.entEmbedding(head),dim=1)
-        relHyper = torch.squeeze(self.relationHyper(relation), dim=1)
+        relHyper = torch.squeeze(self.relHyper(relation), dim=1)
         relation = torch.squeeze(self.relEmbedding(relation),dim=1)
         tail = torch.squeeze(self.entEmbedding(tail),dim=1)
 
@@ -69,20 +69,25 @@ class TransH(Model):
         # Use F.relu()
         marginLoss = torch.sum(F.relu(input=posScore-negScore+self.margin))
         entityLoss = torch.sum(F.relu(torch.norm(self.entEmbedding.weight,p=2,dim=1,keepdim=False)-1))
-        orthLoss = torch.sum(F.relu(torch.sum(self.relationHyper.weight * self.relEmbedding.weight,dim=1,keepdim=False)/\
+        orthLoss = torch.sum(F.relu(torch.sum(self.relHyper.weight * self.relEmbedding.weight,dim=1,keepdim=False)/\
             torch.norm(self.relEmbedding.weight,p=2,dim=1,keepdim=False)-self.eps**2))
         return marginLoss/size + self.C*(entityLoss/self.ent_tot+orthLoss/self.rel_tot)
-
-    def predict(self, inputTriples):
-        return self.scoreOp(inputTriples)
     def normalizeEmbedding(self):
         '''
         The normalization for embedding, including relationEmbedding,entityEmbedding,hyperEmbedding.
         :return:
         '''
-        hyperWeight = self.relationHyper.weight.detach().cpu().numpy()
-        hyperWeight = hyperWeight/np.sqrt(np.sum(np.square(hyperWeight),axis=1,keepdims=True))
-        self.relEmbedding.weight.data.copy_(torch.from_numpy(hyperWeight))
+        weight = self.entEmbedding.weight.detach().cpu().numpy()
+        weight = weight / np.sqrt(np.sum(np.square(weight), axis=1, keepdims=True))
+        self.entEmbedding.weight.data.copy_(torch.from_numpy(weight))
+
+        weight = self.relEmbedding.weight.detach().cpu().numpy()
+        weight = weight / np.sqrt(np.sum(np.square(weight), axis=1, keepdims=True))
+        self.relEmbedding.weight.data.copy_(torch.from_numpy(weight))
+        
+        weight = self.relHyper.weight.detach().cpu().numpy()
+        weight = weight/np.sqrt(np.sum(np.square(weight),axis=1,keepdims=True))
+        self.relHyper.weight.data.copy_(torch.from_numpy(weight))
     def retEvalWeights(self):
         '''
         The embedding for the model to save
@@ -90,9 +95,12 @@ class TransH(Model):
         '''
         return {"entEmbedding": self.entEmbedding.weight.detach().cpu().numpy(),
                 "relEmbedding": self.relEmbedding.weight.detach().cpu().numpy(),
-                "relationHyper": self.relationHyper.weight.detach().cpu().numpy()}
+                "relHyper": self.relHyper.weight.detach().cpu().numpy()}
     def initialWeight(self,filename):
         embeddings = np.load(filename, allow_pickle=True)
         self.entEmbedding.weight.data.copy_(embeddings["entEmbedding"])
         self.relEmbedding.weight.data.copy_(embeddings["relEmbedding"])
-        self.relationHyper.weight.data.copy_(embeddings["relationHyper"])
+        self.relHyper.weight.data.copy_(embeddings["relHyper"])
+    def predictSimScore(self,head,relation,simMeasure="dot"):
+        pass
+    

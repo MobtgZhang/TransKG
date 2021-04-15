@@ -5,14 +5,12 @@ import json
 import numpy as np
 
 class BaseModule(nn.Module):
-
     def __init__(self):
         super(BaseModule, self).__init__()
         self.zero_const = nn.Parameter(torch.Tensor([0]))
         self.zero_const.requires_grad = False
         self.pi_const = nn.Parameter(torch.Tensor([3.14159265358979323846]))
         self.pi_const.requires_grad = False
-
     def load_checkpoint(self, path):
         self.load_state_dict(torch.load(os.path.join(path)))
         self.eval()
@@ -53,8 +51,6 @@ class BaseModule(nn.Module):
             parameters[i] = torch.Tensor(parameters[i])
         self.load_state_dict(parameters, strict = False)
         self.eval()
-
-
 class Model(BaseModule):
     def __init__(self, ent_tot, rel_tot):
         super(Model, self).__init__()
@@ -64,5 +60,5 @@ class Model(BaseModule):
     def forward(self, *args, **kwargs):
         raise NotImplementedError
 
-    def predict(self, *args, **kwargs):
+    def predictSimScore(self,*args,**kargs):
         raise NotImplementedError

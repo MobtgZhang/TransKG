@@ -1,4 +1,3 @@
-import codecs
 import numpy as np
 import torch
 import torch.nn as nn
@@ -66,9 +65,6 @@ class TransE(Model):
 
         # Get Margin ranking loss: max(posScore-negScore+margin,0)
         return torch.sum(F.relu(input=posScore-negScore+self.margin))/size
-
-    def predict(self, inputTriples):
-        return self.scoreOp(inputTriples)
     def normalizeEmbedding(self):
         '''
         In every training epoch,the entity embedding should be normalize first.\\
@@ -81,10 +77,15 @@ class TransE(Model):
         weight = self.entEmbedding.weight.detach().cpu().numpy()
         weight = weight / np.sqrt(np.sum(np.square(weight), axis=1, keepdims=True))
         self.entEmbedding.weight.data.copy_(torch.from_numpy(weight))
+        weight = self.relEmbedding.weight.detach().cpu().numpy()
+        weight = weight / np.sqrt(np.sum(np.square(weight), axis=1, keepdims=True))
+        self.relEmbedding.weight.data.copy_(torch.from_numpy(weight))
     def retEvalWeights(self):
         return {"entEmbedding":self.entEmbedding.weight.detach().cpu().numpy(),
                 "relEmbedding":self.relEmbedding.weight.detach().cpu().numpy()}
-    def initialWeight(self,filename):
-        embeddings = np.load(filename, allow_pickle=True)
+    def initialWeight(self,emb_file):
+        embeddings = np.load(emb_file, allow_pickle=True)
         self.entEmbedding.weight.data.copy_(embeddings["entEmbedding"])
         self.relEmbedding.weight.data.copy_(embeddings["relEmbedding"])
+    def predictSimScore(self,head,relation,simMeasure="dot"):
+        pass
