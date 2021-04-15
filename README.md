@@ -10,13 +10,33 @@ Also you can choose some of old models,including NTN,SLM,LFM,SME model.
 + numpy>=1.20.1
 + tensorboardX>=2.2
 # Usage
-Step1: download the FB15K-237 dataset,then extract the dataset file into the file `data`. 
-
-Step2: Use following command to train the embedding.
+Step1: Create a virtual environment for the python.
+```bash
+virtualenv -p /usr/bin/python pytorch_env
+```
+Step2: Install the requirements.
+```bash
+source pytorch_env/bin/activate
+```
+Step3: Install the requirements.
+```bash
+pip install -r requirements.txt
+```
+Step4: Run the `main.py` script to train the model.
 ```bash
 python main.py
 ```
-Then the embedding file will save in dir:`./checkpoints`
+The arguments of the file `main.py` as follows:
+```bash
+usage: TransKG framework for training embeddings. [-h] [--model-name MODEL_NAME] [--ent-dim ENT_DIM] [--rel-dim REL_DIM] [--dataset-name DATASET_NAME] [--shuffle SHUFFLE]
+                                                  [--opt-method OPT_METHOD] [--learning-rate LEARNING_RATE] [--grad-clipping GRAD_CLIPPING] [--weight-decay WEIGHT_DECAY]
+                                                  [--lr-decay LR_DECAY] [--momentum MOMENTUM] [--rho RHO] [--eps EPS] [--cuda CUDA] [--gpu GPU] [--num-workers NUM_WORKERS]
+                                                  [--parallel PARALLEL] [--random-seed RANDOM_SEED] [--num-epoches NUM_EPOCHES] [--batch-size BATCH_SIZE]
+                                                  [--save-steps SAVE_STEPS] [--root-dir ROOT_DIR] [--checkpoints-dir CHECKPOINTS_DIR] [--log-file LOG_FILE]
+                                                  [--pre-model PRE_MODEL] [--emb-file EMB_FILE] [--checkpoint CHECKPOINT]
+```
+Then the embedding,model,parameters file will save in dir:`./checkpoints`
+And the dictionary of entity and relation file,train,valid and test file will save in directory:`./data`.
 # Dataset
 The FB15K-237 dataset is here:[FB15K-237](https://everest.hds.utc.fr/lib/exe/fetch.php?media=en:fb15k.tgz).
 # References
