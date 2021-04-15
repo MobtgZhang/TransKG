@@ -1,128 +1,154 @@
 import os
-import torch
+import logging
+import uuid
+
 from transkg.utils import checkPath
-class Config():
-    '''
-    Data arguments:This class is used for training model dataset parameters.
-    '''
-    def __init__(self):
-        self.train_dir = "./data/train.txt"
-        self.valid_dir = "./data/valid.txt"
-        self.test_dir = "./data/test.txt"
 
-        self.checkpoints_dir = "./checkpoints"
-        self.dict_dir = os.path.join(self.checkpoints_dir,"dict")
-        self.ent_path = os.path.join(self.checkpoints_dir,"dict","entityDict.json")
-        self.rel_path = os.path.join(self.checkpoints_dir, "dict", "relationDict.json")
-        self.train_raw = "./data/freebase_mtr100_mte100-train.txt"
-        self.valid_raw = "./data/freebase_mtr100_mte100-valid.txt"
-        self.test_raw = "./data/freebase_mtr100_mte100-test.txt"
+logger = logging.getLogger(__name__)
+ROOT_DIR = './data'
+CHECKPOINTS_DIR = './checkpoints'
+def str2bool(v):
+    return v.lower() in ('yes', 'true', 't', '1', 'y')
+def add_args(parser):
+    parser.register('type', 'bool', str2bool)
 
+    # Model architecture
+    model = parser.add_argument_group('Model parameters')
+    model.add_argument('--model-name', type=str, default='TransE',
+                       help='Model architecture type: TransE,TransH,TransR,TransD,TransA,KG2E,NTN,LFM,SME')
+    model.add_argument('--ent-dim', type=int, default=100,
+                       help='Embedding size of entity.')
+    model.add_argument('--rel-dim', type=int, default=100,
+                       help='Embedding size of relation.')
+    # dataset details
+    dataset = parser.add_argument_group('Dataset parameters')
+    dataset.add_argument('--dataset-name', type=str, default="FB15K237",
+                       help='Training the dataset for the model.')
+    dataset.add_argument('--shuffle', type='bool', default=True,
+                         help='Training process whether shuffle the dataset.')
+    # Optimization details
+    optim = parser.add_argument_group('Model Optimization')
+    optim.add_argument('--opt-method', type=str, default='adam',
+                       help='Optimizer: sgd, adam, adagrad,adadelta')
+    optim.add_argument('--learning-rate', type=float, default=1.0,
+                       help='Learning rate for sgd, adadelta')
+    optim.add_argument('--grad-clipping', type=float, default=10,
+                       help='Gradient clipping')
+    optim.add_argument('--weight-decay', type=float, default=0.1,
+                       help='Weight decay factor')
+    optim.add_argument('--lr-decay', type=float, default=0.1,
+                       help='learning rate decay factor')
+    optim.add_argument('--momentum', type=float, default=0.1,
+                       help='Momentum factor')
+    optim.add_argument('--rho', type=float, default=0.95,
+                       help='Rho for adadelta')
+    optim.add_argument('--eps', type=float, default=1e-6,
+                       help='Eps for adadelta')
+    # Runtime environment
+    runtime = parser.add_argument_group('Environment')
+    runtime.add_argument('--cuda', type='bool', default=True,
+                         help='Train on CPU, even if GPUs are available.')
+    runtime.add_argument('--gpu', type=int, default=0,
+                         help='Run on a specific GPU')
+    runtime.add_argument('--num-workers', type=int, default=5,
+                         help='Number of subprocesses for data loading')
+    runtime.add_argument('--parallel', type='bool', default=False,
+                         help='Use DataParallel on all available GPUs')
+    runtime.add_argument('--random-seed', type=int, default=1013,
+                         help=('Random seed for all numpy/torch/cuda '
+                               'operations (for reproducibility)'))
+    runtime.add_argument('--num-epoches', type=int, default=40,
+                         help='Train data iterations')
+    runtime.add_argument('--batch-size', type=int, default=16,
+                         help='Batch size for training')
+    runtime.add_argument('--save-steps', type=int, default=2,
+                         help='Save steps for the training model.')
+    # Files
+    files = parser.add_argument_group('Filesystem')
+    files.add_argument('--root-dir', type=str, default=ROOT_DIR,
+                       help='Directory for dataset.')
+    files.add_argument('--checkpoints-dir', type=str, default=CHECKPOINTS_DIR,
+                       help='Checkpoints files.')
+    files.add_argument('--log-file', type=str, default='',
+                       help='Checkpoints files.')
+    files.add_argument('--pre-model', type=str, default=None,
+                       help='Pretraining model for the dataset training.')
+    files.add_argument('--emb-file', type=str, default=None,
+                       help='Embedding files.')
+    # Saving + loading
+    save_load = parser.add_argument_group('Saving/Loading')
+    save_load.add_argument('--checkpoint', type='bool', default=False,
+                           help='Save model + optimizer state after each epoch')
+def set_default(args):
+    uuid_value = uuid.uuid1()
+    uuid_str = uuid_value.hex
+    args.uuid_str = uuid_str
+    args.log_file = os.path.join(args.checkpoints_dir,args.model_name,args.model_name+"-"+args.uuid_str+".log")
+    # model defination
+def check_args(args):
+    assert (args.model_name in ["TransE","TransH","TransR","TransD","TransA","KG2E","NTN","LFM","SME"])
+    assert (args.dataset_name in ["FB15K237"])
+    TransE = {"emb_dim": 100,
+              "margin": 1.0,
+              "L": 2}
+    TransH = {"emb_dim": 100,
+              "margin": 1.0,
+              "L": 2,
+              "C": 0.01,
+              "eps": 0.001}
+    TransD = {"ent_dim": 100,
+              "rel_dim": 100,
+              "margin": 2.0,
+              "L": 2}
+    TransA = {"emb_dim": 100,
+              "margin": 3.2,
+              "L": 2,
+              "lamb": 0.01,
+              "C": 0.2}
+    TransR = {"emb_dim": 100,
+              "margin": 1.0,
+              "L": 2, }
+    KG2E = {"emb_dim": 100,
+            "margin": 4.0,
+            "sim": "EL",
+            "vmin": 0.03,
+            "vmax": 3.0}
+    SME = {"ent_dim": 100,
+           "rel_dim": 100,
+           "L": 2,
+           "ele_dot": True}
+    NTN = {"ent_dim": 100,
+           "rel_dim": 100,
+           "bias_flag": True,
+           "rel_flag": True,
+           "margin": 1.0}
+    LFM = {
 
-
-        # Data loader arguments
-        self.batch_size = 1024
-        self.shuffle = True
-        self.work_threads = 0
-        self.drop_last = False
-        self.repproba = 0.5
-        self.exproba = 0.5
-
-        # Model and training general arguments
-        TransE = {"EmbeddingDim": 100,
-                       "Margin": 1.0,
-                       "L": 2}
-        TransH = {"EmbeddingDim": 100,
-                       "Margin": 1.0,
-                       "L": 2,
-                       "C": 0.01,
-                       "Eps": 0.001}
-        TransD = {"EntityDim": 100,
-                       "RelationDim": 100,
-                       "Margin": 2.0,
-                       "L": 2}
-        TransA = {"EmbeddingDim": 100,
-                       "Margin": 3.2,
-                       "L": 2,
-                       "Lamb": 0.01,
-                       "C": 0.2}
-        TransR = {"EmbeddingDim": 100,
-                       "Margin": 1.0,
-                       "L": 2,}
-        KG2E = {"EmbedDim": 100,
-                     "Margin": 4.0,
-                     "Sim": "EL",
-                     "Vmin": 0.03,
-                     "Vmax": 3.0}
-        SME = {"EntityDim": 100,
-               "RelationDim": 100,
-               "L":2,
-               "ElementDot":True}
-        NTN = {"EntityDim": 100,
-               "RelationDim": 100,
-               "BaisFlag":True,
-               "RelFlag":True,
-               "Margin":1.0}
-        self.model_dict = {"TransA":TransA,
-                           "TransD":TransD,
-                           "TransE":TransE,
-                           "TransH":TransH,
-                           "TransR":TransR,
-                           "KG2E":KG2E,
-                           "SME":SME,
-                           "NTN":NTN}
-        self.use_gpu = torch.cuda.is_available()
-        self.gpu_num = torch.cuda.device_count()
-        self.model_name = "TransE"
-        self.alpha = 0
-        self.weight_decay = 0
-        self.train_times = 10
-        self.save_steps = 2
-        self.evalepoch = 1
-        self.learningrate = 0.01
-        self.lr_decay = 0.96
-        self.lrdecayepoch = 5
-        self.opt_method = "Adam"
-        self.eval_method = "MR"
-        self.sim_measure = "L2"
-        self.load_embed = False
-        self.load_model = False
-        self.embed_file = os.path.join(self.checkpoints_dir,self.model_name,"embeddings.npz")
-        self.pre_model = "./checkpoints/KG2E/KG2E.ckpt"
-        # Other arguments
-        self.summary_dir = os.path.join(self.checkpoints_dir,self.model_name,"summary")
-        # check path
-        self.checkPath()
-        # The parameters in papper
-
-    def usePaperConfig(self):
-        # Paper best params
-        if self.model_name == "TransE":
-            self.embeddingdim = 50
-            self.learningrate = 0.01
-            self.margin = 1.0
-            self.distance = 1
-            self.simmeasure = "L1"
-        elif self.model_name == "TransH":
-            self.batchsize = 1200
-            self.embeddingdim = 50
-            self.learningrate = 0.005
-            self.margin = 0.5
-            self.C = 0.015625
-        elif self.model_name == "TransD":
-            self.batchsize = 4800
-            self.entitydim = 100
-            self.relationdim = 100
-            self.margin = 2.0
-        else:
-            raise TypeError("Unknown model type:%s"%self.model_name)
-
-    def checkPath(self):
-        # Check files
-        checkPath(self.train_dir)
-        checkPath(self.valid_dir)
-        checkPath(self.test_dir)
-        # Check dirs
-        checkPath(self.checkpoints_dir,raise_error=False)
-        checkPath(self.summary_dir,raise_error=False)
-        checkPath(self.dict_dir,raise_error=False)
+    }
+    if args.model_name == "TransE":
+        args.model_kargs = TransE
+    elif args.model_name == "TransH":
+        args.model_kargs = TransH
+    elif args.model_name == "TransR":
+        args.model_kargs = TransR
+    elif args.model_name == "TransD":
+        args.model_kargs = TransD
+    elif args.model_name == "TransA":
+        args.model_kargs = TransA
+    elif args.model_name == "KG2E":
+        args.model_kargs = KG2E
+    elif args.model_name == "NTN":
+        args.model_kargs = NTN
+    elif args.model_name == "LFM":
+        args.model_kargs = LFM
+    elif args.model_name == "SME":
+        args.model_kargs = SME
+    else:
+        logger.error("No model named %s" % (args.model_name))
+        exit(1)
+def check_paths(args):
+    checkPath(args.root_dir,raise_error=False)
+    checkPath(args.checkpoints_dir,raise_error=False)
+    checkPath(os.path.join(args.checkpoints_dir, args.model_name),raise_error=False)
+    checkPath(os.path.join(args.root_dir, args.dataset_name, "processed"), raise_error=False)
+    checkPath(os.path.join(args.root_dir, args.dataset_name, "raw"), raise_error=False)
