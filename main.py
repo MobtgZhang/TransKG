@@ -4,14 +4,15 @@ import logging
 
 import numpy as np
 import torch
-from transkg.dataset.FB15K237 import FB15K237Dataset,FB15K237Trainer,preparingFB15273Dataset
+from transkg.dataset.FB15K237 import FB15K237Trainer,preparingFB15273Dataset,FB15K237Tester
 from tensorboardX import SummaryWriter
 from config import add_args,set_default,check_paths,check_args
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
-def main():
+def main(args):
     # preparing dataset
+    sumWriter = SummaryWriter(log_dir=args.summary_dir)
     preparingFB15273Dataset(args.root_dir)
     trainer = FB15K237Trainer(args)
     trainer.prepareData()
@@ -22,6 +23,13 @@ def main():
         trainer.loadPretrainEmbedding(args.emb_file)
     trainer.run()
     trainer.save()
+    saved_model_file = trainer.model_file
+    del trainer
+    tester = FB15K237Tester(args)
+    tester.set_model(saved_model_file)
+    tester.prepareData()
+    tester.run_link_prediction()
+    sumWriter.close()
 if __name__ == '__main__':
     # Parse cmdline args and setup environment
     parser = argparse.ArgumentParser(
@@ -60,4 +68,4 @@ if __name__ == '__main__':
         logger.addHandler(logfile)
     logger.info('COMMAND: %s' % ' '.join(sys.argv))
     print(args)
-    main()
+    main(args)

@@ -4,7 +4,7 @@ import uuid
 
 from transkg.utils import checkPath
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 ROOT_DIR = './data'
 CHECKPOINTS_DIR = './checkpoints'
 def str2bool(v):
@@ -28,13 +28,13 @@ def add_args(parser):
                          help='Training process whether shuffle the dataset.')
     # Optimization details
     optim = parser.add_argument_group('Model Optimization')
-    optim.add_argument('--opt-method', type=str, default='adam',
+    optim.add_argument('--opt-method', type=str, default='sgd',
                        help='Optimizer: sgd, adam, adagrad,adadelta')
-    optim.add_argument('--learning-rate', type=float, default=1.0,
+    optim.add_argument('--learning-rate', type=float, default=0.01,
                        help='Learning rate for sgd, adadelta')
     optim.add_argument('--grad-clipping', type=float, default=10,
                        help='Gradient clipping')
-    optim.add_argument('--weight-decay', type=float, default=0.1,
+    optim.add_argument('--weight-decay', type=float, default=0,
                        help='Weight decay factor')
     optim.add_argument('--lr-decay', type=float, default=0.1,
                        help='learning rate decay factor')
@@ -57,10 +57,12 @@ def add_args(parser):
     runtime.add_argument('--random-seed', type=int, default=1013,
                          help=('Random seed for all numpy/torch/cuda '
                                'operations (for reproducibility)'))
-    runtime.add_argument('--num-epoches', type=int, default=40,
+    runtime.add_argument('--num-epoches', type=int, default=10,
                          help='Train data iterations')
     runtime.add_argument('--batch-size', type=int, default=16,
                          help='Batch size for training')
+    runtime.add_argument('--eval-batch-size', type=int, default=16,
+                         help='Batch size for validation/test.')
     runtime.add_argument('--save-steps', type=int, default=2,
                          help='Save steps for the training model.')
     # Files
@@ -69,6 +71,8 @@ def add_args(parser):
                        help='Directory for dataset.')
     files.add_argument('--checkpoints-dir', type=str, default=CHECKPOINTS_DIR,
                        help='Checkpoints files.')
+    files.add_argument('--summary-dir', type=str, default=None,
+                       help='Summary directory.')
     files.add_argument('--log-file', type=str, default='',
                        help='Checkpoints files.')
     files.add_argument('--pre-model', type=str, default=None,
@@ -79,11 +83,18 @@ def add_args(parser):
     save_load = parser.add_argument_group('Saving/Loading')
     save_load.add_argument('--checkpoint', type='bool', default=False,
                            help='Save model + optimizer state after each epoch')
+    # validation
+    validation = parser.add_argument_group('Validation/Test')
+    validation.add_argument('--sim-measure', type=str, default="dot",
+                           help='Evaluation method for the MR,including dot,cos,l1,l2.')
+    validation.add_argument('--eval-method', type=str, default="MR",
+                            help='Evaluation method for the model,including MR and Hit10.')
 def set_default(args):
     uuid_value = uuid.uuid1()
     uuid_str = uuid_value.hex
     args.uuid_str = uuid_str
     args.log_file = os.path.join(args.checkpoints_dir,args.model_name,args.model_name+"-"+args.uuid_str+".log")
+    args.summary_dir = os.path.join(args.checkpoints_dir,args.model_name,"summary")
     # model defination
 def check_args(args):
     assert (args.model_name in ["TransE","TransH","TransR","TransD","TransA","KG2E","NTN","LFM","SME"])
