@@ -1,6 +1,6 @@
 import logging
 import json
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 from ..trainer import Trainer
 from .data import prepareDataloader
 

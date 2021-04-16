@@ -17,7 +17,6 @@ class BaseModule(nn.Module):
 
     def save_checkpoint(self, path):
         torch.save(self.state_dict(), path)
-
     def load_parameters(self, path):
         f = open(path, "r")
         parameters = json.loads(f.read())

@@ -93,4 +93,33 @@ class TransD(Model):
         self.entMapEmbedding.weight.data.copy_(embeddings["entMapEmbedding"])
         self.relMapEmbedding.weight.data.copy_(embeddings["relMapEmbedding"])
     def predictSimScore(self,head,relation,simMeasure="dot"):
-        pass
+        simMeasure = simMeasure.lower()
+        assert (simMeasure in {"dot", "cos", "l2", "l1"})
+        headp = torch.squeeze(self.entMapEmbedding(head), dim=1)
+        head = torch.squeeze(self.entEmbedding(head), dim=1)
+        relationp = torch.squeeze(self.relMapEmbedding(relation), dim=1)
+        relation = torch.squeeze(self.relEmbedding(relation), dim=1)
+        relMapMatrix = torch.unsqueeze(relationp, dim=2)
+        expTailMatrix = head + relation
+        tailEmbedding = self.entEmbedding.weight.data
+        tailMapMatrix = self.entMapEmbedding.weight.data
+        simScore = []
+        ent_dim = self.ent_dim
+        rel_dim = self.rel_dim
+        for expM, relMap in zip(expTailMatrix, relMapMatrix):
+            Mrt = np.matmul(relMap[np.newaxis, :, np.newaxis], tailMapMatrix[:, np.newaxis, :]) + np.eye(rel_dim,
+                                                                                                         ent_dim)
+            if simMeasure == "l2":
+                score = np.linalg.norm(np.squeeze(np.matmul(Mrt, tailEmbedding[:, :, np.newaxis]), axis=2) - expM,
+                                       ord=2,
+                                       axis=1, keepdims=False)
+                simScore.append(score)
+            elif simMeasure == "l1":
+                score = np.linalg.norm(np.squeeze(np.matmul(Mrt, tailEmbedding[:, :, np.newaxis]), axis=2) - expM,
+                                       ord=1,
+                                       axis=1, keepdims=False)
+                simScore.append(score)
+            else:
+                print("ERROR : SimMeasure %s is not supported!" % simMeasure)
+                exit(1)
+        return np.array(simScore)

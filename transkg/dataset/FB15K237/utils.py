@@ -4,7 +4,7 @@ import os
 import pandas as pd
 from collections import Counter
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 def readFile(filename):
     head = {}

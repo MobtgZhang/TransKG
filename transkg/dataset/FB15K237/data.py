@@ -9,7 +9,7 @@ from tqdm import tqdm
 import pandas as pd
 from torch.utils.data import Dataset,DataLoader
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 from .utils import generateDict,changeToStandard
 

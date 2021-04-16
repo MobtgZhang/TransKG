@@ -7,10 +7,10 @@ import torch
 import torch.optim as optim
 from torch.autograd import Variable
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 from ..model import TransE,TransH,TransR,TransD,TransA,KG2E
 from ..model import NTN,LFM,SME
-
+from ..utils import MREvaluation
 class Trainer:
     def __init__(self,args):
         # Static arguments
@@ -18,6 +18,7 @@ class Trainer:
         self.model_name = args.model_name
         self.dataset_name = args.dataset_name
         self.uuid_str = args.uuid_str
+        self.sim_measure = args.sim_measure
         # Runtime arguments
         self.num_workers = args.num_workers
         self.num_epoches = args.num_epoches
@@ -29,6 +30,7 @@ class Trainer:
         self.lr_decay = args.lr_decay
         self.weight_decay = args.weight_decay
         self.learning_rate = args.learning_rate
+        self.momentum = args.momentum
         # Data loader arguments
         self.shuffle = args.shuffle
         self.train_loader = None
@@ -73,20 +75,22 @@ class Trainer:
         elif self.model_name == "LFM":
             self.model = LFM(ent_tot=ent_tot,rel_tot=rel_tot,**kargs)
         else:
-            print("ERROR : No model named %s" % (self.model_name))
+            logger.info("ERROR : No model named %s" % (self.model_name))
             exit(1)
     def loadPretrainEmbedding(self,filename):
-        print("INFO : Loading pre-training entity and relation embedding for model %s: %s!"%(self.model_name,filename))
+        logger.info("INFO : Loading pre-training entity and relation embedding for model %s: %s!"%(self.model_name,filename))
         self.model.initialWeight(filename)
     def loadPretrainModel(self,filename):
-        print("INFO : Loading pre-training model:%s!" % filename)
+        logger.info("INFO : Loading pre-training model:%s!" % filename)
         model_type = os.path.splitext(filename)[-1]
         if model_type == ".json":
             self.model.load_parameters(filename)
         elif model_type == ".ckpt":
             self.model.load_checkpoint(filename)
+        elif model_type == ".mdl":
+            self.model = torch.load(filename)
         else:
-            print("ERROR : Model type %s is not supported!" % filename)
+            logger.info("ERROR : Model type %s is not supported!" % filename)
             exit(1)
     def to_var(self,x,use_gpu):
         if use_gpu:
@@ -116,24 +120,28 @@ class Trainer:
                 lr_decay=self.lr_decay,
                 weight_decay=self.weight_decay,
             )
-        elif self.opt_method == "Adadelta" or self.opt_method == "adadelta":
+        elif self.opt_method.lower() == "adadelta":
             self.optimizer = optim.Adadelta(
                 self.model.parameters(),
                 lr=self.learning_rate,
                 weight_decay=self.weight_decay,
             )
-        elif self.opt_method == "Adam" or self.opt_method == "adam":
+        elif self.opt_method.lower() == "adam":
             self.optimizer = optim.Adam(
                 self.model.parameters(),
                 lr=self.learning_rate,
                 weight_decay=self.weight_decay
             )
-        else:
+        elif self.opt_method.lower() == "sgd":
             self.optimizer = optim.SGD(
                 self.model.parameters(),
                 lr=self.learning_rate,
                 weight_decay=self.weight_decay,
+                momentum=self.momentum
             )
+        else:
+            logger.info("Unknown optimizer method: %s"%self.opt_method)
+            exit(1)
         logger.info("Finish initializing...")
         training_range = tqdm(range(self.num_epoches))
         root = os.path.join(self.checkpoints_dir, self.model_name)
@@ -141,6 +149,7 @@ class Trainer:
             logger.info("INFO : making dirs %s" % root)
             os.makedirs(root)
         loss_list = []
+        mr_list = []
         for epoch in training_range:
             res = 0.0
             for posX, negX in self.train_loader:
@@ -148,20 +157,25 @@ class Trainer:
                 res += loss
             # print the details of the model.
             # validation
-            # MREvaluation(self.valid_loader,self.model_name,simMeasure)
+            score = MREvaluation(self.valid_loader,self.model,self.sim_measure,self.use_gpu)
+            mr_list.append(score)
             training_range.set_description("Epoch %d | loss: %f" % (epoch, res))
             loss_list.append(res)
 
             if self.save_steps and self.checkpoints_dir and (epoch) % self.save_steps == 0:
-                model_path = os.path.join(root, self.model_name + "-"+self.uuid_str+"-" + str(epoch) + ".ckpt")
+                model_path = os.path.join(root, self.uuid_str+"-" + str(epoch) + ".ckpt")
                 logger.info("Save the model: %s"%model_path)
                 self.model.save_checkpoint(model_path)
-        loss_path = os.path.join(root, self.model_name +"-"+self.uuid_str+"-"+"loss.txt")
-        with open(loss_path,mode="r",encoding="utf-8") as wfp:
-            for item in loss_path:
-                wfp.write(item+"\n")
+        loss_path = os.path.join(root,self.uuid_str+"-"+"loss.txt")
+        with open(loss_path,mode="w",encoding="utf-8") as wfp:
+            for item in loss_list:
+                wfp.write(str(item)+"\n")
         logger.info("Save the loss: %s" % loss_path)
-
+        mr_path = os.path.join(root, self.uuid_str + "-" + "mr.txt")
+        with open(mr_path, mode="w", encoding="utf-8") as wfp:
+            for item in mr_list:
+                wfp.write(str(item) + "\n")
+        logger.info("Save the mr: %s" % mr_path)
     def save(self):
         '''The method saves the model embedding,model and model parameters
         :return:
@@ -169,9 +183,18 @@ class Trainer:
         # save the embedding
         output = self.model.retEvalWeights()
         root = os.path.join(self.checkpoints_dir, self.model_name)
-        np.savez(os.path.join(root, "embeddings.npz"), **output)
+        np.savez(os.path.join(root, self.uuid_str + "-embeddings.npz"), **output)
         # save model
-        self.model.save_checkpoint(os.path.join(root, self.model_name + ".ckpt"))
+
+        self.model_ck_file = os.path.join(root,self.uuid_str+ ".ckpt")
+        self.model.save_checkpoint(self.model_ck_file)
+        logger.info("Saved the model checkpoint file %s" % self.model_ck_file)
         # save model parameters
-        self.model.save_parameters(os.path.join(root, self.model_name + ".json"))
+        self.parameters_file = os.path.join(root,self.uuid_str+ ".json")
+        self.model.save_parameters(self.parameters_file)
+        logger.info("Saved the parameters file %s"%self.parameters_file)
+        # save model parameters
+        self.model_file = os.path.join(root, self.uuid_str + ".mdl")
+        torch.save(self.model,self.model_file)
+        logger.info("Saved the model file %s" % self.model_file)
 

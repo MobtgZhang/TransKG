@@ -1,6 +1,6 @@
 import os
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 def printArgs(args):
     '''
     This method is used for print the args in the console terminal.

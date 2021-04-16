@@ -10,9 +10,10 @@ class TransE(Model):
     paper author: Bordes A , Usunier N , Garcia-Duran A , et al.
     paper website: http://www.thespermwhale.com/jaseweston/papers/CR_paper_nips13.pdf
     '''
-    def __init__(self,ent_tot,rel_tot,emb_dim,margin=1.0,L=2):
+    def __init__(self,ent_tot,rel_tot,emb_dim,pretraining=False,margin=1.0,L=2):
         super(TransE, self).__init__(ent_tot,rel_tot)
         assert (L==1 or L==2)
+
         self.name = "TransE"
         self.margin = margin
         self.L = L
@@ -88,4 +89,31 @@ class TransE(Model):
         self.entEmbedding.weight.data.copy_(embeddings["entEmbedding"])
         self.relEmbedding.weight.data.copy_(embeddings["relEmbedding"])
     def predictSimScore(self,head,relation,simMeasure="dot"):
-        pass
+        self.eval()
+        simMeasure = simMeasure.lower()
+        assert (simMeasure.lower() in {'dot','cos','l1','l2'})
+        head = self.entEmbedding(head)
+        relation = self.relEmbedding(relation)
+        tailEmbedding = self.entEmbedding.weight.data
+        expTailMatrix = head+relation
+        simMeasure = simMeasure.lower()
+        if simMeasure == "l1":
+            simScore = []
+            for expM in expTailMatrix:
+                score = torch.norm(expM.unsqueeze(0) - tailEmbedding, p=1, dim=1, keepdim=False)
+                simScore.append(score)
+            simScore = torch.vstack(simScore)
+        elif simMeasure == "l2":
+            simScore = []
+            for expM in expTailMatrix:
+                score = torch.norm(expM.unsqueeze(0) - tailEmbedding, p=2, dim=1, keepdim=False)
+                simScore.append(score)
+            simScore = torch.vstack(simScore)
+        elif simMeasure == "dot":
+            simScore = torch.matmul(expTailMatrix, tailEmbedding.T)
+        else:  # cos
+            aScore = expTailMatrix / torch.norm(expTailMatrix, p=2, dim=1, keepdim=True)
+            bScore = tailEmbedding / torch.norm(tailEmbedding, p=2, dim=1, keepdim=True)
+            simScore = torch.matmul(aScore, bScore.T)
+        return simScore
+

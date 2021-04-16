@@ -102,5 +102,24 @@ class TransH(Model):
         self.relEmbedding.weight.data.copy_(embeddings["relEmbedding"])
         self.relHyper.weight.data.copy_(embeddings["relHyper"])
     def predictSimScore(self,head,relation,simMeasure="dot"):
-        pass
+        simMeasure = simMeasure.lower()
+        assert (simMeasure.lower() in {"dot", "cos", "l2", "l1"})
+        simScore = []
+        head = self.entEmbedding(head)
+        relation = self.relEmbedding(relation)
+        expTailMatrix = head+relation
+        hyperMatrix = self.relHyper(relation)
+        tailEmbedding = self.entEmbedding.weight.data
+        for expM, hypM in zip(expTailMatrix, hyperMatrix):
+            hyperEmbedding = tailEmbedding - hypM.unsqueeze(0) * torch.matmul(tailEmbedding, hypM.unsqueeze(1))
+            if simMeasure == "dot":
+                simScore.append(torch.squeeze(torch.matmul(hyperEmbedding, hypM.unsqueeze(1))))
+            elif simMeasure == "l2":
+                score = torch.norm(hyperEmbedding - expM.unsqueeze(0), p=2, dim=1, keepdim=False)
+                simScore.append(score)
+            else:
+                print("ERROR : simMeasure %s is not supported!" % simMeasure)
+                exit(1)
+        simScore = torch.vstack(simScore)
+        return simScore
     
