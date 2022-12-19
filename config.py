@@ -11,6 +11,7 @@ def get_args():
     parser.add_argument("--emb-dim",default=200,type=int)
     parser.add_argument("--learning-rate",default=0.01,type=float)
     parser.add_argument("--epoches",default=20,type=int)
+    parser.add_argument("--num-k",default=10,type=int)
     parser.add_argument("--cuda",action="store_false")
     args = parser.parse_args()
     return args

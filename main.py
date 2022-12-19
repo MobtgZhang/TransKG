@@ -11,11 +11,13 @@ import config
 from transkg import create_ents_rels,create_pos_neg_ids
 from transkg import Dictionary,EntityrelationDataset
 from transkg import TransE
+from transkg import hits_value,DataSaver
 
 def main(args):
     # generate the entities and relations
     data_dir = os.path.join(args.data_dir,args.dataset)
     result_dir = os.path.join(args.result_dir,args.dataset)
+    log_dir = os.path.join(args.log_dir,args.dataset)
     # saved entity and relations files
     load_ent_file = os.path.join(result_dir,"entity2id.txt")
     load_rel_file = os.path.join(result_dir,"relation2id.txt")
@@ -50,15 +52,21 @@ def main(args):
     test_file = os.path.join(result_dir,"test_ids.txt")
     test_dataset = EntityrelationDataset(test_file)
     test_loader = DataLoader(test_dataset,batch_size= args.batch_size,shuffle=False)
-    
     # create models
     ent_size = len(ent_dict)
     rel_size = len(rel_dict)
     model = TransE(ent_size,rel_size,args.emb_dim)
     model.to(device)
     optimizer = torch.optim.SGD(model.parameters(),lr=args.learning_rate,)
+    save_valid_result_file = os.path.join(log_dir,args.time_step_str+"_valid.csv")
+    valid_saver = DataSaver(args.num_k,save_valid_result_file)
+    save_test_result_file = os.path.join(log_dir,args.time_step_str+"_test.csv")
+    test_saver = DataSaver(args.num_k,save_test_result_file)
+    # the training dataset
+    loss_list = []
     for epoch in range(args.epoches):
         avg_loss = 0.0
+        model.train()
         for item in train_loader:
             optimizer.zero_grad()
             pos_x,neg_x = item
@@ -69,8 +77,20 @@ def main(args):
             loss.backward()
             optimizer.step()
         avg_loss /= len(train_loader)
-        print(avg_loss)
+        loss_list.append(avg_loss)
         # test the dataset 
+        valid_dict = hits_value(model,valid_loader,device,num_k=args.num_k)
+        valid_saver.add(valid_dict)
+        test_dict = hits_value(model,test_loader,device,num_k=args.num_k)
+        test_saver.add(test_dict)
+        save_model_file = os.path.join(log_dir,args.time_step_str+"_TransE.pkl")
+        torch.save(model,save_model_file)
+        save_embedding_file = os.path.join(log_dir,args.time_step_str+"_TransE_embedding.npz")
+        np.savez(save_embedding_file,rel=model.rel_emb.data.numpy(),ent=model.ent_emb.data.numpy())
+    save_loss_result_file = os.path.join(log_dir,args.time_step_str+"_loss.csv")
+    with open(save_loss_result_file,mode="w",encoding="utf-8") as wfp:
+        for item in loss_list:
+            wfp.write("%0.4f\n"%item)
 if __name__ == "__main__":
     # get and check argumentation
     args = config.get_args()
