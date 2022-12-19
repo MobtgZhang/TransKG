@@ -1,0 +1,1 @@
+from .TransE import TransE
